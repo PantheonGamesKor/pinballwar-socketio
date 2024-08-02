@@ -13,14 +13,13 @@ io.on("connection", (socket) => {
   console.log("a user connected");
   socket.emit("message", "hello");
 
-  socket.on("chat message", (_msg) => {
-    var msg = "" + msg;
-    console.log("message: " + msg);
+  socket.on("message", (msg) => {
+    console.log("message: ", msg);
     socket.emit("message", "echo " + msg);
   });
-  socket.on("chat message", (msg) => {
-    io.emit("chat message", msg);
-  });
+  // socket.on("chat message", (msg) => {
+  //   io.emit("chat message", msg);
+  // });
   socket.on("disconnect", () => {
     console.log("user disconnected");
   });
