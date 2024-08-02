@@ -1,6 +1,6 @@
-// index.js
-const { app, init_socket_io } = require("./dist/app");
-const http = require("http");
+import { app, init_socket_io } from "./src/app";
+import http from "http";
+
 const server = http.createServer(app);
 const PORT = 3000;
 
