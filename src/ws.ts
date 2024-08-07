@@ -38,7 +38,6 @@ const LIVE_RECV_TIME = 60; // 초단위, 통신이 없어도 유지하는 시간
 
 export function on_connection(_sock: WebSocket) {
   const client = _sock as WebSocket2;
-  console.log("on_connection", client.index);
 
   // conn_client start
   {
@@ -50,12 +49,12 @@ export function on_connection(_sock: WebSocket) {
 
     client.index = closed_list.pop() as number;
     client_list[client.index] = client;
+    console.log("on_connection", client.index);
 
     // client.session = {} as TokenData;
     client.user_uid = 0;
     client.game_id = "";
     client.load_complete = false;
-    // client.is_dummy = false;
 
     client.last_recv = unix_time();
     client.last_update = unix_time();
@@ -67,8 +66,8 @@ export function on_connection(_sock: WebSocket) {
     };
 
     // func override
-    if (client.is_dummy) {
-      console.log("dummy skip func override");
+    if (client.is_dummy_class) {
+      // 더미는 할일 없음
     } else {
       client.send_text = (text) => {
         client.emit("message", text);
@@ -125,7 +124,7 @@ function update_ws(client: WebSocket2): boolean {
   // console.log("update_ws", client.index, delay);
 
   // 할일
-  if (client.is_dummy) {
+  if (client.is_dummy_class) {
     var dummy = client as any;
     on_dummy_update(dummy as DummyClient);
   }
@@ -152,8 +151,7 @@ export function on_update_client() {
     if (client === null) continue;
 
     // 전송 시간 초과
-    // console.log("client", client);
-    if (client.is_dummy) {
+    if (client.is_dummy_class) {
       // 더미는 시간 초과 없음
     } else if (now - client.last_recv > LIVE_RECV_TIME) {
       list_close_recv.push(client.index);

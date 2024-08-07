@@ -34,6 +34,7 @@ export interface WebSocket2 extends WebSocket {
   game_id: string;
   load_complete: boolean;
   is_dummy: boolean; // 더미 유저
+  is_dummy_class: boolean; // 생성은 더미로 되었다.
 
   // 게임용 데이터
   game_data: {

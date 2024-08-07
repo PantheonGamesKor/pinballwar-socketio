@@ -1,3 +1,4 @@
+// WaitRoom.ts
 import {
   //
   unix_time,
@@ -11,6 +12,8 @@ import {
   GameRoom,
   game_room_map,
 } from "./GameRoom";
+import { random, shuffle_list } from "./helper";
+import { create_dummy } from "./DummyClient";
 
 export interface WaitUser {
   user_uid: number;
@@ -97,8 +100,8 @@ export class WaitRoom {
     return map;
   }
 
-  // 가장 오래 기단린 유저의 국가
-  get_longest_wait_country(): string | null {
+  // 가장 오래기다린 유저
+  get_longest_wait_user(): WaitUser | null {
     var found: WaitUser | null = null;
     var min = unix_time();
 
@@ -112,6 +115,14 @@ export class WaitRoom {
     if (found === null) return null;
 
     var wait = found as WaitUser;
+    return wait;
+  }
+
+  // 가장 오래 기단린 유저의 국가
+  get_longest_wait_country(): string | null {
+    const wait = this.get_longest_wait_user();
+    if (wait === null) return null;
+
     var c = wait.country;
     return c;
   }
@@ -229,56 +240,6 @@ export class WaitRoom {
       game_room.send_start();
       return true;
     }
-    // else if (count_list.length == 1) {
-    //   console.log("update_match, country is 1");
-
-    //   // 국가가 하나일 경우 더미의 반을 다른 국가로 옴ㄹ긴다.
-    //   const user_list_list: WaitUser[][] = [];
-    //   const cc = count_list[0];
-    //   if (cc.user + cc.dummy < 10) {
-    //     // 사람이 없어서 기다려야함
-    //     return false;
-    //   }
-
-    //   const c = cc.country;
-    //   const user_list = this.get_country_user(c);
-    //   const dummy_list: WaitUser[] = [];
-    //   user_list.forEach((v) => {
-    //     if (v.is_dummy) {
-    //       dummy_list.push(v);
-    //     }
-    //   });
-
-    //   // 절반은 다른 국가로 변경
-    //   const c2 = c != "usa" ? "usa" : "chn";
-    //   const u_count = user_list.length;
-    //   const u_half = Math.floor(u_count / 2);
-    //   const d_count = dummy_list.length;
-    //   console.log(`update_match type=1, user=${u_count}, dummy=${d_count}`);
-
-    //   // 더미를 u_half 만큼 c2 국가로 변경
-    //   dummy_list.forEach((d, i) => {
-    //     if (i >= u_half) return;
-
-    //     const client = client_list[d.client_index];
-    //     if (client === null) return;
-    //     // 국가 강제 변경
-    //     const old_country = d.country;
-    //     console.log(
-    //       `dummy change country, ${old_country}, dummy=${d_count} -> ${c2}`
-    //     );
-
-    //     d.country = c2;
-    //     client.session.country = c2;
-
-    //     // // 더미가 처리할 일이 없다 전송안해도 될듯
-    //     // const res = new NS_Echo();
-    //     // res.text = `dummy_change_country-${c2}`;
-    //     // send_res(client, res);
-    //   });
-
-    //   return true;
-    // }
 
     console.log("update_match, make 2 team");
 
@@ -287,168 +248,124 @@ export class WaitRoom {
     count_list.splice(0, count_list.length);
     for (const country in map) {
       var cc = map[country];
-      // if (cc.user < 1) continue; // 더미만 있는 국가 허용
-      // if (cc.user + cc.dummy < 5) continue;
       count_list.push(cc);
     }
 
     // 가장 오래기다린 유저를 찾는다.
-    let found_old_user: WaitUser | null = null;
-    this.list.forEach((v) => {
-      if (v.is_dummy) return;
-      if (found_old_user == null) {
-        found_old_user = v;
-        return;
-      }
-
-      if (v.time >= found_old_user.time) return;
-      found_old_user = v;
-    });
-
-    // 사암은 없었다.
-    if (found_old_user === null) {
-      console.log("update_match, not found user");
+    const wait_user = this.get_longest_wait_user();
+    if (wait_user === null) {
+      // 사암이 없다. 아무일도 일어나지 않음
+      // console.log("update_match, not found user");
       return false;
     }
 
-    // console.log("found_user", found_old_user);
-
-    // 유저 발견
-    const old_user = found_old_user as WaitUser;
-    // console.log("update_match, make 2 team, old_user", old_user.user_uid);
-
-    const wait_user = old_user;
-    const c1 = wait_user.country; // 첫번째 국가
-    var c2 = c1 != "usa" ? "usa" : "chn";
-
-    // 두번째 국가 찾기
-    var max_count = 0;
-    count_list.forEach((v) => {
-      if (v.country == c1) return;
-      if (v.user + v.dummy < max_count) return;
-      max_count = v.user + v.dummy;
-      c2 = v.country;
-    });
-
-    // 더미와 유저수를 구함
-    var c1_user = 0;
-    var c1_dummy = 0;
-    var c2_user = 0;
-    var c2_dummy = 0;
-    var total_dummy = 0;
-    count_list.forEach((v) => {
-      total_dummy += v.dummy;
-      if (v.country == c1) {
-        c1_dummy = v.dummy;
-        c1_user = v.user;
-      }
-      if (v.country == c2) {
-        c2_dummy = v.dummy;
-        c2_user = v.user;
-      }
-    });
-
-    // 로그
-    console.log(
-      "c1",
-      {
-        //
-        country: c1,
-        user: c1_user,
-        dummy: c1_dummy,
-      },
-      "c2",
-      {
-        //
-        country: c2,
-        user: c2_user,
-        dummy: c2_dummy,
-      },
-      "total_dummy",
-      total_dummy
-    );
-
-    // half 만큼 더미를 옮김
-    const total = c1_user + c2_user + total_dummy;
-    const half = Math.floor(total / 2);
-    var c1_total = c1_user + c1_dummy;
-    var c2_total = c2_user + c2_dummy;
+    // 유저 발견, 국가를 4개 만든다.
+    const max_country = 4;
+    const c_list = [wait_user.country];
     this.list.forEach((v) => {
-      if (v.is_dummy == false) return;
+      if (c_list.length >= max_country) return;
+      if (v.is_dummy) return;
 
-      const client = client_list[v.client_index];
-      if (client === null) return;
+      const pos = c_list.indexOf(v.country);
+      if (pos >= 0) return;
 
-      // c1 c2 는 half 보다 높다면 상대 팀으로 이동시킨다.
-      if (v.country == c1) {
-        // half 보다 많고
-        // c2 보다도 많을때
-        if (c1_total > half && c1_total > c2_total) {
-          c1_total--;
-          c2_total++;
+      c_list.push(v.country);
+    });
 
-          v.country = c2;
-          client.session.country = c2;
+    // 없는 국가 동원해서 4개 채운다.
+    make_random_country(c_list, max_country);
+    console.log("update_match, make_random_country", c_list);
 
-          console.log(
-            "dummy move, c1 -> c2",
-            client.session.user_name,
-            client.session.country,
-            c1_total,
-            "->",
-            c2_total
-          );
-        }
-        return;
-      } else if (v.country == c2) {
-        // half 보다 많고
-        // c1 보다도 많을때
-        if (c2_total > half && c2_total > c1_total) {
-          c2_total--;
-          c1_total++;
-
-          v.country = c1;
-          client.session.country = c1;
-
-          console.log(
-            "dummy move, c1 <- c2",
-            client.session.user_name,
-            client.session.country,
-            c1_total,
-            "<-",
-            c2_total
-          );
-        }
-        return;
+    // 유저 수만 뽑아낸다.
+    const cc_list: CountryCount[] = [];
+    c_list.forEach((c) => {
+      var cc: CountryCount | null = null;
+      for (var i = 0; i < count_list.length; i++) {
+        const cc2 = count_list[i];
+        if (cc2.country != c) continue;
+        cc = cc2;
+        break;
       }
 
-      // 남은 더미는 c1 이나 c2 로 간다..
-      var c_target = "";
-      if (c1_total < half) {
-        c1_total++;
-        c_target = c1;
-      } else if (c2_total <= half) {
-        c2_total++;
-        c_target = c2;
+      if (cc !== null) {
+        cc_list.push({
+          country: c,
+          dummy: 0,
+          user: cc.user,
+        });
       } else {
-        return;
+        cc_list.push({
+          country: c,
+          dummy: 0,
+          user: 0,
+        });
       }
+    });
 
-      const old_country = v.country;
-      console.log(
-        //
-        "dummy change country",
-        client.session.user_name,
-        old_country,
-        "->",
-        c_target
-      );
+    console.log("update_match cc_list", cc_list);
 
-      v.country = c_target;
-      client.session.country = c_target;
+    // 더미만 있는 리스트, 여기서 뽑아 쓴다.
+    const dummy_list: WaitUser[] = [];
+    this.list.forEach((d) => {
+      if (false === d.is_dummy) return;
+      dummy_list.push(d);
+    });
+
+    // 더미를 뽑아서 배치한다.
+    cc_list.forEach((cc) => {
+      const count = cc.user + cc.dummy;
+      for (var i = count; i < 5; i++) {
+        if (dummy_list.length > 1) {
+          const dwait = dummy_list[0];
+          dummy_list.splice(0, 1);
+
+          const dummy = client_list[dwait.client_index];
+          if (dummy === null) return;
+
+          dwait.country = cc.country;
+          dummy.session.country = cc.country;
+        } else {
+          // 더미 생성한다.
+          const dummy = create_dummy();
+          if (dummy === null) {
+            // 더미 제공 불가
+            return;
+          }
+
+          dummy.session.country = cc.country;
+        }
+
+        cc.dummy++;
+      }
     });
 
     return false;
   }
 }
+
+// 랜덤 국가로 채운다.
+// 겹치지 않게
+export function make_random_country(list: string[], count: number) {
+  const candidate_list: string[] = ["kor", "usa", "chn", "jpn", "eng"];
+  shuffle_list(candidate_list);
+
+  for (var i = 0; i < candidate_list.length; i++) {
+    const r = random(candidate_list.length);
+    const c = candidate_list[r];
+    candidate_list.splice(r, 1);
+    candidate_list.push(c);
+  }
+
+  for (var i = 0; i < candidate_list.length; i++) {
+    if (list.length >= count) break;
+
+    // 있으면 안됨
+    const c = candidate_list[i];
+    const pos = list.indexOf(c);
+    if (pos >= 0) continue;
+
+    list.push(c);
+  }
+}
+
 export const wait_room = new WaitRoom();

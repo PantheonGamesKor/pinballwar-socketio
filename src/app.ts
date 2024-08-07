@@ -2,16 +2,13 @@
 import express from "express";
 import {
   //
-  WebSocket,
-} from "./types_sock";
-import {
-  //
   on_connection,
   on_update_client,
   on_update_waitroot,
 } from "./ws";
 import { HttpServer2, WSServer } from "./types_sock";
-import { DummyClient } from "./lib/DummyClient";
+import { DummyClient, create_dummy, create_fake_user } from "./lib/DummyClient";
+import { REDIS_H } from "./lib/helper";
 
 export const app = express();
 // const server: HTTP_SERVER = http.createServer(app);
@@ -20,8 +17,11 @@ app.get("/", (_req, res) => {
   res.send("ok");
 });
 
-var start_dummy_user_uid = 1;
-const max_dummy_count = 10;
+app.get("/", (_req, res) => {
+  res.send("ok");
+});
+
+const start_dummy_count = 20; // 4팀은 돌려야해서
 export function init_socket_io(server: HttpServer2) {
   console.log("init_socket_io start");
 
@@ -34,13 +34,13 @@ export function init_socket_io(server: HttpServer2) {
   // 대기방 업데이트
   setInterval(on_update_waitroot, 1000 * 3);
 
-  // dummy 생성
-  for (var i = 0; i < max_dummy_count; i++) {
-    var dummy = new DummyClient();
-    dummy.dummy_user_uid = start_dummy_user_uid + i;
-    dummy.is_dummy = true;
+  if (REDIS_H == "DEV") {
+    // 유저같은 더미 생성
+    create_fake_user();
+  }
 
-    var c: any = dummy;
-    on_connection(c as WebSocket);
+  // dummy 생성
+  for (var i = 0; i < start_dummy_count; i++) {
+    create_dummy();
   }
 }

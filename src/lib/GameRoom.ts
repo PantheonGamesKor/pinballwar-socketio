@@ -65,18 +65,27 @@ export class GameRoom {
     console.log("game_room.check_game_finish", user_count, dummy_count);
 
     // 유저가 없다면 더미를 끝낸다.
-    if (user_count == 0) {
-      console.log("game_room.check_game_finish finish all dummy");
-
-      this.user_list.forEach((v) => {
-        const res = new NS_Echo();
-        res.text = "dummy_game_finish";
-        v.send_res(res);
-      });
-    } else {
-      // 게임 종료 처리
-      console.log("game_finish user exists, user_count=", user_count);
+    if (user_count > 0) {
+      return;
     }
+
+    console.log("game_room.check_game_finish, all dummy, game close");
+
+    // 더미 처리
+    this.user_list.forEach((dummy) => {
+      const res = new NS_Echo();
+      res.text = "dummy_game_finish";
+      dummy.send_res(res);
+    });
+
+    //
+    this.user_list = [];
+    this.user_list.forEach((dummy) => {
+      dummy.game_id = "";
+    });
+
+    delete game_room_map[this.game_id];
+    console.log("game close", this.game_id);
   }
 
   // 유저 나감
@@ -99,12 +108,23 @@ export class GameRoom {
     // 유저 제거
     this.user_list.splice(pos, 1);
 
-    // 다른 유저에게 알림 통신
+    // 유저랑 더미수 확인
+    var user_count = 0;
     this.user_list.forEach((c) => {
+      if (c.is_dummy) return;
+      user_count++;
+    });
+
+    // 유저에게만 전송
+    if (user_count > 0) {
       const res = new NN_Game_Leave();
       res.user_uid = user_uid;
-      c.send_res(res);
-    });
+      const res_text = res.to_data();
+      this.user_list.forEach((c) => {
+        if (c.is_dummy_class) return;
+        c.send_text(res_text, res);
+      });
+    }
 
     this.check_game_finish();
   }

@@ -245,43 +245,11 @@ proc_ws_map[NQ_Game_Finish.NO] = (client: WebSocket2, arr: string[]) => {
     return;
   }
 
-  // const game_room = game_room_map[client.game_id];
-  // if (game_room === undefined) {
-  //   // console.error("[ERR] NQ_Game_Finish fail, not found game_room");
-  //   // close_ws(client, "game_finish_fail_2");
-
-  //   // 없으면 없는데로 성공처리
-  //   client.game_id = "";
-
-  //   const res = new NS_Game_Finish();
-  //   send_res(client, res);
-  //   return;
-  // }
-
-  // game_room.leave_user(client.user_uid);
-
-  // // if (client.game_id == "") {
-  // //   const res = new NS_Game_Finish();
-  // //   send_res(client, res);
-  // // } else {
-  // //   console.log("NQ_Game_Finish game_room.leave_user fail", client.user_uid);
-  // // }
-
-  // // 나갔으면 처리
-  // client.game_id = "";
-
-  // const res = new NS_Game_Finish();
-  // send_res(client, res);
-
-  if (client.game_id != "") {
-    const game_room = game_room_map[client.game_id];
-    if (game_room !== undefined) {
-      game_room.leave_user(client.user_uid);
-    } else {
-      console.warn("[WARN] NQ_Game_Finish not found game_room");
-    }
+  const game_room = game_room_map[client.game_id];
+  if (game_room !== undefined) {
+    game_room.leave_user(client.user_uid);
   } else {
-    console.warn("[WARN] NQ_Game_Finish already leave");
+    console.error("[ERR] NQ_Game_Finish not found game_room");
   }
 
   // 상태와 상관없이 나가기 처리
