@@ -26,7 +26,15 @@ import {
   DummyClient,
 } from "./DummyClient";
 import { set_token } from "./myredis";
-import { time_now, random, time_diff_now } from "./helper";
+import {
+  //
+  time_now,
+  random,
+  time_diff_now,
+  make_uuid,
+  make_random_user_name,
+} from "./helper";
+import { make_random_country, make_time_uid } from "./WaitRoom";
 
 // 자주 업데이트
 export function on_dummy_update(dummy: DummyClient) {
@@ -71,10 +79,10 @@ export function on_dummy_update(dummy: DummyClient) {
       const seq = random(100);
       if (seq < 5) {
         // 채팅도 보내본다.
-        const req = new NQ_Game_Action();
-        req.action = NQ_Game_Action.CHAT;
-        req.text = `dummy chat ${dummy.update_action_count}`;
-        dummy.send_packet(req);
+        // const req = new NQ_Game_Action();
+        // req.action = NQ_Game_Action.CHAT;
+        // req.text = `dummy chat ${dummy.update_action_count}`;
+        // dummy.send_packet(req);
       } else if (seq < 10) {
         // 속성 변경
         const req = new NQ_Game_Action();
@@ -160,11 +168,15 @@ export async function dummy_recv_NS_Echo(dummy: DummyClient, res: NS_Echo) {
       country = dummy.session.country;
     }
 
+    let no = (dummy.dummy_user_uid % 50) + 1;
+    const img = `https://fkkmionpfegwfauynejk.supabase.co/storage/v1/object/public/profile/web/dummy_${no}.jpg`;
+    const user_name = make_random_user_name();
+
     // todo 토큰 넣고
     dummy.dummy_token = await set_token({
       user_uid: dummy.dummy_user_uid,
-      user_name: `USER-${dummy.dummy_user_uid}`,
-      profile_url: "",
+      user_name: user_name,
+      profile_url: img,
       country,
       team: 0,
       start_ch: 0,

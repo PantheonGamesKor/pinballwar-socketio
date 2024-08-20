@@ -1,13 +1,26 @@
 import moment, { Moment } from "moment";
-import { unix_time as unix_time_2 } from "../types_sock";
+import dotenv from "dotenv";
+
+import { to_int, unix_time as unix_time_2 } from "../types_sock";
+import { word_list } from "./words";
+
 const { v4 } = require("uuid");
 
-import dotenv from "dotenv";
 dotenv.config();
 
 export const REDIS_H = process.env.REDIS_H as string;
 export const SERVER_NAME = process.env.SERVER_NAME as string;
 export const EXTERNAL_URL = process.env.EXTERNAL_URL as string;
+
+function get_is_ev() {
+  if (REDIS_H != "DEV") return false;
+  if (process.env.IS_DEV === undefined) return false;
+  const n = to_int(process.env.IS_DEV);
+  return n != 0;
+}
+
+export const IS_DEV = get_is_ev();
+console.log("IS_DEV", IS_DEV);
 
 // 유니크 시작 번호
 let unique_id = 0;
@@ -62,4 +75,43 @@ export function time_diff_now(old: Moment) {
 
 export function time_now() {
   return moment();
+}
+
+// 단어만 뽑기
+export function make_random_name() {
+  const wi = random(word_list.length);
+  const word = word_list[wi];
+  return word;
+}
+
+// 좀더 섞어서 만듬
+export function make_random_user_name(): string {
+  let no = random(10000);
+  let word = make_random_name();
+  switch (random(8)) {
+    case 0:
+      return `${word}${no}`;
+    case 1:
+      let no2 = random(10000);
+      return `U${no}${no2}`;
+    case 2:
+      return `U_${word}`;
+    case 3:
+      let WORD = word.toUpperCase();
+      return `USER-${WORD}`;
+    case 3:
+      return `${word}#${no}`;
+    case 4:
+      return `${word}_${no}`;
+    case 5:
+      let no_a = no % 1000;
+      let no_b = random(1000);
+      return `${no_a}${word}${no_b}`;
+    case 6:
+      return `@${word}@`;
+    case 7:
+      return `@${word}${no}`;
+    default:
+      return `USER-${word}`;
+  }
 }

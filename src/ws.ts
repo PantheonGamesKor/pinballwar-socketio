@@ -2,6 +2,7 @@
 import {
   //
   unix_time,
+  time_format,
   //
   WebSocket,
   WebSocket2,
@@ -189,6 +190,7 @@ export async function on_update_waitroot() {
   const online = total - closed;
 
   const data = {
+    date: time_format(),
     time: unix_time(),
     url: EXTERNAL_URL,
     online,

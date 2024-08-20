@@ -1,4 +1,5 @@
 // types_sock.ts
+import moment, { Moment } from "moment";
 import {
   //
   Server as HttpServer,
@@ -91,6 +92,18 @@ export function unix_time(date = Date.now()): number {
 
 export function unix_time_ms(date = Date.now()): number {
   return Math.floor(date);
+}
+
+// moment 임포트 하기 귀찮아서
+export const time_now = moment;
+
+// 글자로
+export function time_format(m: Moment | null = null) {
+  if (m === null) {
+    m = time_now();
+  }
+
+  return m.format("yyyy-MM-DD HH:mm:ss");
 }
 
 //
@@ -265,16 +278,22 @@ export class NN_Ready_Start {
   static NO = 21;
   no = 21;
   end_turn = 0;
+  max_ball_lv = 0;
+  max_speed_lv = 0;
   //
   from_data(arr: string[]) {
     var i = 1;
     this.end_turn = to_int(arr[i++]);
+    this.max_ball_lv = to_int(arr[i++]);
+    this.max_speed_lv = to_int(arr[i++]);
   }
   to_data(): string {
     return args_to_data(
       //
       this.no,
-      this.end_turn
+      this.end_turn,
+      this.max_ball_lv,
+      this.max_speed_lv
     );
   }
 }

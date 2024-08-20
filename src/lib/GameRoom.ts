@@ -201,6 +201,8 @@ export class GameRoom {
     {
       const res = new NN_Ready_Start();
       res.end_turn = 50 * 60; // 1분
+      res.max_ball_lv = 200;
+      res.max_speed_lv = 200;
       const res_text = res.to_data();
       this.user_list.forEach((c) => {
         c.send_text(res_text, res);
