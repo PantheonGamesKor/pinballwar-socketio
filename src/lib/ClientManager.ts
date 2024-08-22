@@ -23,7 +23,9 @@ export function close_ws(client: WebSocket2, reason: string) {
   }
 
   const user_uid = client.user_uid;
-  const game_id = client.game_id;
+  // const game_id = client.game_id;
+  const game_room = client.game_room;
+  const game_id = game_room === null ? "" : game_room.game_id;
   console.log("close_ws", index, user_uid, game_id, reason);
 
   // 대기방에서 나가기
@@ -33,13 +35,16 @@ export function close_ws(client: WebSocket2, reason: string) {
   }
 
   // 게임방에서 나가기
-  if (game_id != "") {
-    const game_room = game_room_map[game_id];
-    client.game_id = "";
+  // if (game_id != "") {
+  //   const game_room = game_room_map[game_id];
+  //   client.game_id = "";
+  if (game_room !== null) {
+    client.game_room = null;
 
     // console.log("close_ws->game_id", game_id);
-    if (game_room !== undefined) {
-      game_room.leave_user(user_uid);
+    // if (game_room !== undefined)
+    {
+      game_room.leave_user(client);
       console.log("close -> game_room.leave_user");
 
       // 빈방이면 제거해야함
@@ -47,9 +52,10 @@ export function close_ws(client: WebSocket2, reason: string) {
         delete game_room_map[game_id];
         console.log("close -> game_room delete");
       }
-    } else {
-      console.error("[ERR] close -> game_room not found");
     }
+    // else {
+    //   console.error("[ERR] close -> game_room not found");
+    // }
   }
 
   if (user_uid != 0) {

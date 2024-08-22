@@ -8,15 +8,20 @@ import {
 } from "http";
 import { TokenData } from "./lib/myredis";
 
+// const
+export const MAX_BALL_LV = 200;
+export const MAX_SPEED_LV = 100;
+
+// socket.io
+import { Server, Socket } from "socket.io";
+import { DefaultEventsMap } from "socket.io/dist/typed-events";
+import { GameRoom } from "./lib/GameRoom";
+
 export type HttpServer2 = HttpServer<
   //
   typeof IncomingMessage,
   typeof ServerResponse
 >;
-
-// socket.io
-import { Server, Socket } from "socket.io";
-import { DefaultEventsMap } from "socket.io/dist/typed-events";
 
 export const WSServer = Server;
 export type WebSocket = Socket<
@@ -32,7 +37,8 @@ export interface WebSocket2 extends WebSocket {
   index: number;
   user_uid: number;
   session: TokenData;
-  game_id: string;
+  // game_id: string;
+  game_room: GameRoom | null;
   load_complete: boolean;
   is_dummy: boolean; // 더미 유저
   is_dummy_class: boolean; // 생성은 더미로 되었다.
@@ -183,7 +189,7 @@ export class NS_Echo extends NetPacket {
   }
 }
 
-//
+// 대기방에 들어갈때
 export class NQ_Ready extends NetPacket {
   static NO = 11;
   no = 11;

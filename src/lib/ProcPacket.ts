@@ -1,4 +1,7 @@
 import {
+  MAX_BALL_LV,
+  MAX_SPEED_LV,
+  //
   unix_time,
   //
   WebSocket2,
@@ -48,7 +51,8 @@ proc_ws_map[NQ_Login.NO] = async (client: WebSocket2, arr: string[]) => {
   const user_uid = data.user_uid;
   client.user_uid = user_uid;
   client.session = data;
-  client.game_id = "";
+  // client.game_id = "";
+  client.game_room = null;
   client.load_complete = false;
   console.log("NQ_Login", client.index, client.session.user_name);
 
@@ -102,7 +106,7 @@ proc_ws_map[NQ_Echo.NO] = (client: WebSocket2, arr: string[]) => {
 
   client.send_res(res);
 };
-// 게임 레디
+// 대기방 입장
 proc_ws_map[NQ_Ready.NO] = (client: WebSocket2, arr: string[]) => {
   // 로그인 해야 쓸 수 있음
   if (client.user_uid == 0) {
@@ -149,43 +153,47 @@ proc_ws_map[NQ_Ready.NO] = (client: WebSocket2, arr: string[]) => {
   res.code = NS_Ready.ENTER;
   client.send_res(res);
 };
-// 게임 레디
+// 게임 로딩 완료
 proc_ws_map[NQ_Game_LoadComplete.NO] = (client: WebSocket2, arr: string[]) => {
-  if (client.game_id == "") {
-    // 이럴 수 없는디..
+  // if (client.game_id == "") {
+  if (client.game_room === null) {
+    // 불가능한 상황
     console.error("[ERR] NQ_Game_LoadComplete fail, game_id is empty");
     close_ws(client, "loadcomplete_fail_1");
     return;
   }
 
-  const game_room = game_room_map[client.game_id];
-  if (game_room === undefined) {
-    console.error("[ERR] NQ_Game_LoadComplete fail, not found game_room");
-    // 타이밍 때문에 이럴 수 있음
-    // 끊을 필요 없고
-    // close_ws(client, "loadcomplete_fail_2");
-    return;
-  }
+  // const game_room = game_room_map[client.game_id];
+  // if (game_room === undefined) {
+  //   console.error("[ERR] NQ_Game_LoadComplete fail, not found game_room");
+  //   // 타이밍 때문에 이럴 수 있음
+  //   // 끊을 필요 없고
+  //   // close_ws(client, "loadcomplete_fail_2");
+  //   return;
+  // }
 
+  const game_room = client.game_room;
   client.load_complete = true;
   game_room.check_loading();
 };
 // 게임 액션
 proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
-  if (client.game_id == "") {
+  // if (client.game_id == "") {
+  const game_room = client.game_room;
+  if (game_room === null) {
     // 이럴 수 없는디..
     console.error("[ERR] NQ_Game_Action fail, game_id is empty");
     close_ws(client, "game_action_fail_1");
     return;
   }
 
-  const game_room = game_room_map[client.game_id];
-  if (game_room === undefined) {
-    // 발생가능한 상황
-    // console.error("[ERR] NQ_Game_Action fail, not found game_room");
-    // close_ws(client, "game_action_fail_2");
-    return;
-  }
+  // const game_room = game_room_map[client.game_id];
+  // if (game_room === undefined) {
+  //   // 발생가능한 상황
+  //   // console.error("[ERR] NQ_Game_Action fail, not found game_room");
+  //   // close_ws(client, "game_action_fail_2");
+  //   return;
+  // }
 
   const req = new NQ_Game_Action();
   req.from_data(arr);
@@ -194,8 +202,8 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
   // 숫자 제한 검사
   switch (req.action) {
     case NQ_Game_Action.BALL_ADD:
-      if (client.game_data.ball + req.value > 100) {
-        req.value = 100 - client.game_data.ball;
+      if (client.game_data.ball + req.value > MAX_BALL_LV) {
+        req.value = MAX_BALL_LV - client.game_data.ball;
       }
 
       if (req.value <= 0) {
@@ -206,8 +214,8 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       client.game_data.ball += req.value;
       break;
     case NQ_Game_Action.SPEED_UP:
-      if (client.game_data.speed + req.value > 100) {
-        req.value = 100 - client.game_data.speed;
+      if (client.game_data.speed + req.value > MAX_SPEED_LV) {
+        req.value = MAX_SPEED_LV - client.game_data.speed;
       }
 
       if (req.value <= 0) {
@@ -238,22 +246,31 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
 
 // 게임 레디
 proc_ws_map[NQ_Game_Finish.NO] = (client: WebSocket2, arr: string[]) => {
-  if (client.game_id == "") {
+  // if (client.game_id == "") {
+  //   // 불가능한 상황
+  //   console.error("[ERR] NQ_Game_Finish fail, game_id is empty");
+  //   close_ws(client, "game_finish_fail_1");
+  //   return;
+  // }
+  if (client.game_room === null) {
     // 불가능한 상황
     console.error("[ERR] NQ_Game_Finish fail, game_id is empty");
     close_ws(client, "game_finish_fail_1");
     return;
   }
 
-  const game_room = game_room_map[client.game_id];
-  if (game_room !== undefined) {
-    game_room.leave_user(client.user_uid);
+  // const game_room = game_room_map[client.game_id];
+  // if (game_room !== undefined) {
+  const game_room = client.game_room;
+  if (game_room !== null) {
+    game_room.leave_user(client);
   } else {
     console.error("[ERR] NQ_Game_Finish not found game_room");
   }
 
   // 상태와 상관없이 나가기 처리
-  client.game_id = "";
+  // client.game_id = "";
+  client.game_room = null;
 
   const res = new NS_Game_Finish();
   client.send_res(res);

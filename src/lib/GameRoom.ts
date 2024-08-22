@@ -11,6 +11,8 @@ import {
   NN_Ready_Join,
   NN_Ready_Start,
   NN_Game_Start,
+  MAX_BALL_LV,
+  MAX_SPEED_LV,
 } from "../types_sock";
 
 type CountryTeamMap = {
@@ -21,6 +23,7 @@ type CountryTeamMap = {
 export class GameRoom {
   time_create: number = unix_time();
   game_id: string;
+  game_start: boolean = false;
   user_list: WebSocket2[] = [];
   team_id_max: number = 0;
   country_team_map: CountryTeamMap = {};
@@ -40,7 +43,8 @@ export class GameRoom {
     }
 
     client.session.team = team_id;
-    client.game_id = this.game_id;
+    // client.game_id = this.game_id;
+    client.game_room = this;
     client.game_data = {
       attr: client.session.start_ch,
       ball: 1,
@@ -62,14 +66,15 @@ export class GameRoom {
         user_count++;
       }
     });
-    console.log("game_room.check_game_finish", user_count, dummy_count);
+    console.log("check_game_finish", user_count, dummy_count);
 
     // 유저가 없다면 더미를 끝낸다.
     if (user_count > 0) {
       return;
     }
 
-    console.log("game_room.check_game_finish, all dummy, game close");
+    // 이방에 모든 유저는 더미
+    console.log("check_game_finish, all dummy, game close");
 
     // 더미 처리
     this.user_list.forEach((dummy) => {
@@ -81,7 +86,8 @@ export class GameRoom {
     //
     this.user_list = [];
     this.user_list.forEach((dummy) => {
-      dummy.game_id = "";
+      // dummy.game_id = "";
+      dummy.game_room = null;
     });
 
     delete game_room_map[this.game_id];
@@ -89,21 +95,23 @@ export class GameRoom {
   }
 
   // 유저 나감
-  leave_user(user_uid: number) {
+  leave_user(c: WebSocket2) {
+    const user_uid = c.user_uid;
     console.log("game_room.leave_user, user_uid=", user_uid);
 
     const pos = this.user_list.findIndex((v) => {
       return v.user_uid == user_uid;
     });
     if (pos < 0) {
-      // 이러면 유저 관리 문제
+      // 불가능한 상황 심각하다.
       console.error("[ERR] leave_user fail, not found user_uid", user_uid);
       return;
     }
 
     // 게임방 정보 제거
-    const c = this.user_list[pos];
-    c.game_id = "";
+    // const c = this.user_list[pos];
+    // c.game_id = "";
+    c.game_room = null;
 
     // 유저 제거
     this.user_list.splice(pos, 1);
@@ -115,17 +123,22 @@ export class GameRoom {
       user_count++;
     });
 
-    // 유저에게만 전송
+    // 다른 유저 나갔다고 알림
     if (user_count > 0) {
       const res = new NN_Game_Leave();
       res.user_uid = user_uid;
       const res_text = res.to_data();
       this.user_list.forEach((c) => {
-        if (c.is_dummy_class) return;
         c.send_text(res_text, res);
       });
     }
 
+    // 사람이 한명 줄어서 로딩 완료 일 수도 있다.
+    if (false == this.game_start) {
+      this.check_loading();
+    }
+
+    // 끝났을 수도 있다.
     this.check_game_finish();
   }
 
@@ -178,31 +191,32 @@ export class GameRoom {
 
   // 게임시작 패킷 전송
   send_start() {
-    this.user_list.forEach((c) => {
-      // c 에게 모든사람 정보를 한번에 join 전달
-      this.user_list.forEach((u) => {
-        const res = new NN_Ready_Join();
-        res.user_uid = u.user_uid;
-        res.user_name = u.session.user_name;
-        res.team = u.session.team;
-        res.country = u.session.country;
-        res.profile_url = u.session.profile_url;
-        res.start_ch = u.session.start_ch;
-        res.Tinggo_level = u.session.Tinggo_level;
-        res.Firo_level = u.session.Firo_level;
-        res.Lighden_level = u.session.Lighden_level;
-        res.Icing_level = u.session.Icing_level;
-        res.Windy_level = u.session.Windy_level;
-        c.send_res(res);
+    // u 의 정보를 모든 c 에게 전달
+    this.user_list.forEach((u) => {
+      const res = new NN_Ready_Join();
+      res.user_uid = u.user_uid;
+      res.user_name = u.session.user_name;
+      res.team = u.session.team;
+      res.country = u.session.country;
+      res.profile_url = u.session.profile_url;
+      res.start_ch = u.session.start_ch;
+      res.Tinggo_level = u.session.Tinggo_level;
+      res.Firo_level = u.session.Firo_level;
+      res.Lighden_level = u.session.Lighden_level;
+      res.Icing_level = u.session.Icing_level;
+      res.Windy_level = u.session.Windy_level;
+      const res_text = res.to_data();
+      this.user_list.forEach((c) => {
+        c.send_text(res_text, res);
       });
     });
 
     // 모든 사람에게 시작 패킷
     {
       const res = new NN_Ready_Start();
-      res.end_turn = 50 * 60; // 1분
-      res.max_ball_lv = 200;
-      res.max_speed_lv = 200;
+      res.end_turn = 50 * 60 * 5; // 5분
+      res.max_ball_lv = MAX_BALL_LV;
+      res.max_speed_lv = MAX_SPEED_LV;
       const res_text = res.to_data();
       this.user_list.forEach((c) => {
         c.send_text(res_text, res);
@@ -229,7 +243,9 @@ export class GameRoom {
     }
 
     console.log("check_loading ok");
+    this.game_start = true;
 
+    // 모든 유저에게 게임 시작 전달
     const res = new NN_Game_Start();
     res.game_id = this.game_id;
     const res_text = res.to_data();
