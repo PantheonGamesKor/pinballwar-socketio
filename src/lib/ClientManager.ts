@@ -31,7 +31,7 @@ export function close_ws(client: WebSocket2, reason: string) {
   // 대기방에서 나가기
   if (user_uid > 0) {
     // 대기실에서도 나가기
-    wait_room.remove(user_uid);
+    wait_room.leave(client);
   }
 
   // 게임방에서 나가기

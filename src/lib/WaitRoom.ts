@@ -2,6 +2,7 @@
 import {
   //
   unix_time,
+  WebSocket2,
 } from "../types_sock";
 import {
   //
@@ -17,10 +18,11 @@ import { create_dummy } from "./DummyClient";
 
 export interface WaitUser {
   user_uid: number;
-  client_index: number;
+  // client_index: number;
   country: string;
   time: number;
   is_dummy: boolean;
+  client: WebSocket2;
 }
 
 export interface CountryCount {
@@ -51,7 +53,13 @@ export class WaitRoom {
   list: WaitUser[] = [];
   last_match = 0;
 
-  remove(user_uid: number): boolean {
+  log_country_count = 0;
+  log_user_count = 0;
+
+  leave(client: WebSocket2): boolean {
+    const user_uid = client.user_uid;
+    client.is_waitroom = false;
+
     var i = this.list.findIndex((v) => {
       if (v.user_uid != user_uid) return false;
       return true;
@@ -66,19 +74,25 @@ export class WaitRoom {
     return true;
   }
 
-  add(data: WaitUser) {
-    this.remove(data.user_uid);
+  enter(data: WaitUser) {
+    const client = data.client;
+    if (client.is_waitroom) {
+      console.log("[E] already waitroom", data);
+      // this.remove(client);
+      return;
+    }
 
     this.list.push(data);
+    client.is_waitroom = true;
 
     console.log("WaitRoom add ok", this.list.length);
-
-    // const map = this.country_count();
-    // console.log("WaitRoom map", map);
   }
 
   // 국가별 사람수
   country_count(): CountryCountMap {
+    this.log_country_count = 0;
+    this.log_user_count = 0;
+
     var map: CountryCountMap = {};
     this.list.forEach((v) => {
       if (map[v.country] === undefined) {
@@ -88,15 +102,20 @@ export class WaitRoom {
           dummy: 0,
         };
         map[v.country] = new_data;
+
+        this.log_country_count++;
       }
 
-      var data = map[v.country];
+      const data = map[v.country];
       if (v.is_dummy) {
         data.dummy++;
       } else {
         data.user++;
       }
+
+      this.log_user_count++;
     });
+
     return map;
   }
 
@@ -202,17 +221,19 @@ export class WaitRoom {
       user_list_list.forEach((u1_list) => {
         u1_list.findIndex((v, i: number) => {
           start_list.push(v);
-          const c = client_list[v.client_index];
-          if (c !== null) {
-            c.session.team = 1;
-          }
+          // const c = client_list[v.client_index];
+          const c = v.client;
+          // if (c !== null) {
+          c.session.team = 1;
+          // }
           return i == min_count;
         });
       });
 
       // 대기자에서 빼낸다.
       start_list.forEach((v) => {
-        this.remove(v.user_uid);
+        // this.remove(v.user_uid);
+        this.leave(v.client);
       });
 
       // 시작 시간
@@ -225,12 +246,13 @@ export class WaitRoom {
 
       // 게임방에 유저 입장
       start_list.forEach((v) => {
-        const client = client_list[v.client_index];
-        if (client === null) {
-          // 없는 client 가 발생했다면 소켓 관리 방식에 문제가 있는거다.
-          console.error("[ERR] game start skip, client is numm", v);
-          return;
-        }
+        // const client = client_list[v.client_index];
+        const client = v.client;
+        // if (client === null) {
+        //   // 없는 client 가 발생했다면 소켓 관리 방식에 문제가 있는거다.
+        //   console.error("[ERR] game start skip, client is numm", v);
+        //   return;
+        // }
         game_room.add_user(client);
       });
 
@@ -319,7 +341,8 @@ export class WaitRoom {
           const dwait = dummy_list[0];
           dummy_list.splice(0, 1);
 
-          const dummy = client_list[dwait.client_index];
+          // const dummy = client_list[dwait.client_index];
+          const dummy = dwait.client;
           if (dummy === null) return;
 
           dwait.country = cc.country;

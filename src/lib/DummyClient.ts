@@ -61,9 +61,9 @@ export class DummyClient {
   dummy_user_uid = 0;
   dummy_on_message: FUNC_MSG = () => {};
   dummy_token = "";
-  req_wait_room_hint = false;
+  // req_wait_room_hint = false;
   state = DUMMY_STATE.OFFLINE;
-  state_time = moment();
+  state_time = 0;
   next_action = 0;
   game_start = false;
   update_action_count = 0;

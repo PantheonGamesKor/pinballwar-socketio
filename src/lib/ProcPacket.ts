@@ -25,7 +25,7 @@ import {
 } from "../types_sock";
 import { close_ws, user_map } from "./ClientManager";
 import { game_room_map } from "./GameRoom";
-import { wait_room } from "./WaitRoom";
+import { WaitRoom, wait_room } from "./WaitRoom";
 import { get_token } from "./myredis";
 
 // 받은거 처리기
@@ -51,9 +51,6 @@ proc_ws_map[NQ_Login.NO] = async (client: WebSocket2, arr: string[]) => {
   const user_uid = data.user_uid;
   client.user_uid = user_uid;
   client.session = data;
-  // client.game_id = "";
-  client.game_room = null;
-  client.load_complete = false;
   console.log("NQ_Login", client.index, client.session.user_name);
 
   // 중복로그인 처리
@@ -102,6 +99,15 @@ proc_ws_map[NQ_Echo.NO] = (client: WebSocket2, arr: string[]) => {
         res.text = "dummy_wait_room_hint-" + c;
       }
     }
+  } else if (t0 == "p") {
+    // "ping=시간" 클레어서 보낸다.
+
+    // 대기중엔 추가정보
+    if (client.is_waitroom) {
+      const c = wait_room.log_country_count;
+      const u = wait_room.log_user_count;
+      res.text += `&wc=${c}&wu=${u}`;
+    }
   }
 
   client.send_res(res);
@@ -119,15 +125,16 @@ proc_ws_map[NQ_Ready.NO] = (client: WebSocket2, arr: string[]) => {
   req.from_data(arr);
   console.log("NQ_Ready", client.index, req);
 
-  // 더미 국가 변경옵션
-  if (req.country_option != "") {
-    client.session.country = req.country_option;
-    // client.is_dummy = true;
-  }
+  // // 더미 국가 변경옵션
+  // if (req.country_option != "") {
+  //   client.session.country = req.country_option;
+  //   // client.is_dummy = true;
+  // }
 
   const user_uid = client.user_uid;
   if (req.cancel) {
-    const b = wait_room.remove(user_uid);
+    // 대기방 나나기
+    const b = wait_room.leave(client);
     if (!b) {
       console.log("NQ_Ready cancel fail");
       close_ws(client, "ready_cancel_fail");
@@ -141,12 +148,13 @@ proc_ws_map[NQ_Ready.NO] = (client: WebSocket2, arr: string[]) => {
   }
 
   // 입장하기
-  wait_room.add({
+  wait_room.enter({
     user_uid,
-    client_index: client.index,
+    // client_index: client.index,
     country: client.session.country,
     time: unix_time(),
     is_dummy: client.is_dummy,
+    client,
   });
 
   const res = new NS_Ready();

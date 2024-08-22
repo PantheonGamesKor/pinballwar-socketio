@@ -30,6 +30,7 @@ import {
 import {
   //
   EXTERNAL_URL,
+  random,
   SERVER_NAME,
 } from "./lib/helper";
 import { on_dummy_update } from "./lib/DummyProc";
@@ -54,6 +55,7 @@ export function on_connection(_sock: WebSocket) {
 
     // client.session = {} as TokenData;
     client.user_uid = 0;
+    client.is_waitroom = false; // conn
     // client.game_id = "";
     client.game_room = null;
     client.load_complete = false;
@@ -120,7 +122,7 @@ export function on_connection(_sock: WebSocket) {
 function update_ws(client: WebSocket2): boolean {
   const now = unix_time();
   const delay = now - client.last_update;
-  if (delay < 5) return true;
+  if (delay < 1 + random(4)) return true;
 
   client.last_update = now;
   // console.log("update_ws", client.index, delay);

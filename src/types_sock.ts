@@ -37,6 +37,7 @@ export interface WebSocket2 extends WebSocket {
   index: number;
   user_uid: number;
   session: TokenData;
+  is_waitroom: boolean; // 대기실에 있는가
   // game_id: string;
   game_room: GameRoom | null;
   load_complete: boolean;
@@ -194,19 +195,19 @@ export class NQ_Ready extends NetPacket {
   static NO = 11;
   no = 11;
   cancel: number = 0;
-  country_option: string = ""; // 더미는 국가를 변경해서 들어갈 수 있다.
+  // country_option: string = ""; // 더미는 국가를 변경해서 들어갈 수 있다.
   //
   from_data(arr: string[]) {
     var i = 1;
     this.cancel = Number.parseInt(arr[i++]);
-    this.country_option = arr[i++];
+    // this.country_option = arr[i++];
   }
   to_data(): string {
     return args_to_data(
       //
       this.no,
-      this.cancel,
-      this.country_option
+      this.cancel
+      // this.country_option
     );
   }
 }

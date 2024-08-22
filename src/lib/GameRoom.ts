@@ -233,12 +233,18 @@ export class GameRoom {
     });
 
     if (not_ready_count > 0) {
-      console.log(
-        "check_loading not yet",
-        not_ready_count,
-        "/",
-        this.user_list.length
-      );
+      // console.log(
+      //   "check_loading not yet",
+      //   not_ready_count,
+      //   "/",
+      //   this.user_list.length
+      // );
+      var res = new NS_Echo();
+      res.text = `nr=${not_ready_count}`;
+      const res_text = res.to_data();
+      this.user_list.forEach((c) => {
+        c.send_text(res_text, res);
+      });
       return;
     }
 
@@ -246,12 +252,14 @@ export class GameRoom {
     this.game_start = true;
 
     // 모든 유저에게 게임 시작 전달
-    const res = new NN_Game_Start();
-    res.game_id = this.game_id;
-    const res_text = res.to_data();
-    this.user_list.forEach((c) => {
-      c.send_text(res_text, res);
-    });
+    {
+      const res = new NN_Game_Start();
+      res.game_id = this.game_id;
+      const res_text = res.to_data();
+      this.user_list.forEach((c) => {
+        c.send_text(res_text, res);
+      });
+    }
   }
 }
 
