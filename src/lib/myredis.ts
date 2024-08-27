@@ -11,7 +11,7 @@ import {
 var is_init = false;
 var redis = {} as Redis;
 
-async function init() {
+export async function init() {
   if (is_init) return;
   is_init = true;
 

@@ -1,4 +1,6 @@
 import {
+  to_int,
+  //
   MAX_BALL_LV,
   MAX_SPEED_LV,
   //
@@ -26,7 +28,7 @@ import {
 import { close_ws, user_map } from "./ClientManager";
 import { game_room_map } from "./GameRoom";
 import { WaitRoom, wait_room } from "./WaitRoom";
-import { get_token } from "./myredis";
+import { get_redis, get_token, redis_key } from "./myredis";
 
 // 받은거 처리기
 type PROC_WS = (c: WebSocket2, arr: string[]) => void;
@@ -220,6 +222,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       }
 
       client.game_data.ball += req.value;
+      client.game_data.gold_spend += req.value * 1000;
       break;
     case NQ_Game_Action.SPEED_UP:
       if (client.game_data.speed + req.value > MAX_SPEED_LV) {
@@ -232,6 +235,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       }
 
       client.game_data.speed += req.value;
+      client.game_data.gold_spend += req.value * 1000;
       break;
     case NQ_Game_Action.CHANGE_ATTR:
       if (client.game_data.attr == req.value) {
@@ -240,7 +244,24 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       }
 
       client.game_data.attr = req.value;
+      client.game_data.gold_spend += client.game_data.ball * 1000;
       break;
+    case NQ_Game_Action.SCORE_UPLOAD:
+      const arr = req.text.split("&");
+      const turn = to_int(arr[0]);
+      const score = to_int(arr[1]);
+      client.game_log.push({
+        turn,
+        score,
+        ball: client.game_data.ball,
+        speed: client.game_data.speed,
+        attr: client.game_data.attr,
+        gold: client.game_data.gold_spend,
+        cash: client.game_data.cash_spend,
+      });
+
+      // 응답 없고 나간다.
+      return;
   }
 
   const res = new NN_Game_Action();
@@ -253,7 +274,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
 };
 
 // 게임 레디
-proc_ws_map[NQ_Game_Finish.NO] = (client: WebSocket2, arr: string[]) => {
+proc_ws_map[NQ_Game_Finish.NO] = async (client: WebSocket2, arr: string[]) => {
   // if (client.game_id == "") {
   //   // 불가능한 상황
   //   console.error("[ERR] NQ_Game_Finish fail, game_id is empty");
@@ -271,7 +292,7 @@ proc_ws_map[NQ_Game_Finish.NO] = (client: WebSocket2, arr: string[]) => {
   // if (game_room !== undefined) {
   const game_room = client.game_room;
   if (game_room !== null) {
-    game_room.leave_user(client);
+    await game_room.leave_user(client);
   } else {
     console.error("[ERR] NQ_Game_Finish not found game_room");
   }
@@ -280,6 +301,7 @@ proc_ws_map[NQ_Game_Finish.NO] = (client: WebSocket2, arr: string[]) => {
   // client.game_id = "";
   client.game_room = null;
 
+  //
   const res = new NS_Game_Finish();
   client.send_res(res);
 };

@@ -232,7 +232,12 @@ export async function dummy_recv_NS_Echo(dummy: DummyClient, res: NS_Echo) {
     return;
   }
 
-  console.log("NS_Echo else", res);
+  // 아직 레디 안한사람 수
+  if (res.text.indexOf("nr=") == 0) {
+    return;
+  }
+
+  console.error("[E] NS_Echo else", res);
 }
 
 export function dummy_recv_NS_Login(dummy: DummyClient, res: NS_Login) {

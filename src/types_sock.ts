@@ -10,7 +10,7 @@ import { TokenData } from "./lib/myredis";
 
 // const
 export const MAX_BALL_LV = 200;
-export const MAX_SPEED_LV = 100;
+export const MAX_SPEED_LV = 200;
 
 // socket.io
 import { Server, Socket } from "socket.io";
@@ -31,6 +31,24 @@ export type WebSocket = Socket<
   any
 >;
 
+interface GAME_DATA {
+  attr: number;
+  ball: number;
+  speed: number;
+  gold_spend: number;
+  cash_spend: number;
+}
+
+interface GAME_LOG {
+  turn: number;
+  score: number;
+  ball: number;
+  speed: number;
+  attr: number;
+  gold: number;
+  cash: number;
+}
+
 // WSClient
 export interface WebSocket2 extends WebSocket {
   // value
@@ -45,11 +63,8 @@ export interface WebSocket2 extends WebSocket {
   is_dummy_class: boolean; // 생성은 더미로 되었다.
 
   // 게임용 데이터
-  game_data: {
-    attr: number;
-    ball: number;
-    speed: number;
-  };
+  game_data: GAME_DATA;
+  game_log: GAME_LOG[];
 
   //
   last_recv: number;
@@ -363,6 +378,7 @@ export class NQ_Game_Action extends NetPacket {
   static SPEED_UP = 2;
   static CHANGE_ATTR = 3;
   static CHAT = 4;
+  static SCORE_UPLOAD = 5; // 내 점수를 전송
   //
   static NO = 36;
   no = 36;

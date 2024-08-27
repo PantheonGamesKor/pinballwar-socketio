@@ -14,6 +14,11 @@ import {
   MAX_BALL_LV,
   MAX_SPEED_LV,
 } from "../types_sock";
+import {
+  //
+  redis_key,
+  get_redis,
+} from "./myredis";
 
 type CountryTeamMap = {
   [country: string]: number;
@@ -49,7 +54,10 @@ export class GameRoom {
       attr: client.session.start_ch,
       ball: 1,
       speed: 1,
+      gold_spend: 0,
+      cash_spend: 0,
     };
+    client.game_log = [];
 
     this.user_list.push(client);
   }
@@ -95,7 +103,7 @@ export class GameRoom {
   }
 
   // 유저 나감
-  leave_user(c: WebSocket2) {
+  async leave_user(c: WebSocket2) {
     const user_uid = c.user_uid;
     console.log("game_room.leave_user, user_uid=", user_uid);
 
@@ -103,7 +111,7 @@ export class GameRoom {
       return v.user_uid == user_uid;
     });
     if (pos < 0) {
-      // 불가능한 상황 심각하다.
+      // 불가능한 상황
       console.error("[ERR] leave_user fail, not found user_uid", user_uid);
       return;
     }
@@ -112,6 +120,24 @@ export class GameRoom {
     // const c = this.user_list[pos];
     // c.game_id = "";
     c.game_room = null;
+
+    const game_log_text = JSON.stringify(c.game_log);
+    console.log("game_log", game_log_text);
+    c.game_log = [];
+
+    const key = redis_key("GAME_FINISH");
+    get_redis()
+      .hset(key, user_uid, game_log_text)
+      .then(() => {
+        //
+      })
+      .catch((e) => {
+        console.log("leave_user redis_hset fail", key, user_uid, e);
+      });
+
+    const key_history = redis_key("GAME_FINISH_HISTORY");
+    await get_redis() //
+      .zadd(key_history, unix_time(), user_uid);
 
     // 유저 제거
     this.user_list.splice(pos, 1);

@@ -12,14 +12,15 @@ export const REDIS_H = process.env.REDIS_H as string;
 export const SERVER_NAME = process.env.SERVER_NAME as string;
 export const EXTERNAL_URL = process.env.EXTERNAL_URL as string;
 
-function get_is_ev() {
+function is_ev() {
   if (REDIS_H != "DEV") return false;
   if (process.env.IS_DEV === undefined) return false;
-  const n = to_int(process.env.IS_DEV);
+  const v = process.env.IS_DEV;
+  const n = to_int(v);
   return n != 0;
 }
 
-export const IS_DEV = get_is_ev();
+export const IS_DEV = is_ev();
 console.log("IS_DEV", IS_DEV);
 
 // 유니크 시작 번호

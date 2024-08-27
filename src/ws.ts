@@ -67,6 +67,8 @@ export function on_connection(_sock: WebSocket) {
       attr: 0,
       ball: 1,
       speed: 1,
+      gold_spend: 0,
+      cash_spend: 0,
     };
 
     // func override
