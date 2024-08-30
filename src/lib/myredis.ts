@@ -87,7 +87,7 @@ export interface TokenData {
   team: number;
   profile_url: string;
   country: string;
-  start_ch: number;
+  start_ch: number; // 0~5 eAttribute
   Tinggo_level: number;
   Firo_level: number;
   Lighden_level: number;
