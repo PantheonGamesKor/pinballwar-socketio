@@ -105,7 +105,7 @@ export function on_dummy_update(dummy: DummyClient) {
         // 공 추가
         const req = new NQ_Game_Action();
         req.action = NQ_Game_Action.BALL_ADD;
-        req.value = 10;
+        req.value = 1 + random(9);
         dummy.send_packet(req);
       } else if (ratio < 90) {
         // 다음 액션은 좀 더 오래 기다림
@@ -114,7 +114,7 @@ export function on_dummy_update(dummy: DummyClient) {
         // 공 속도 업
         const req = new NQ_Game_Action();
         req.action = NQ_Game_Action.SPEED_UP;
-        req.value = 10;
+        req.value = 1 + random(9);
         dummy.send_packet(req);
       }
       // ACTION END

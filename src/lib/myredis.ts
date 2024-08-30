@@ -110,6 +110,7 @@ export async function get_token(token: string): Promise<TokenData | null> {
   const key = redis_key(token);
   const text = await get_redis().get(key);
   if (text === null) return null;
+  console.log("get_token raw", key, text);
 
   // 한번쓰고 버림
   await get_redis().del(key);

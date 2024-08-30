@@ -26,7 +26,6 @@ app.get("/", (_req, res) => {
 });
 
 let update_count = 0;
-const start_dummy_count = 40; // 4팀은 돌려야해서
 export function init_socket_io(server: HttpServer2) {
   console.log("init_socket_io start");
 
@@ -49,10 +48,5 @@ export function init_socket_io(server: HttpServer2) {
   if (IS_DEV) {
     // 유저같은 더미 생성
     create_fake_user();
-  }
-
-  // dummy 생성
-  for (var i = 0; i < start_dummy_count; i++) {
-    create_dummy();
   }
 }

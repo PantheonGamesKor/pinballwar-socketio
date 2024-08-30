@@ -11,6 +11,11 @@ dotenv.config();
 export const REDIS_H = process.env.REDIS_H as string;
 export const SERVER_NAME = process.env.SERVER_NAME as string;
 export const EXTERNAL_URL = process.env.EXTERNAL_URL as string;
+export const MAX_DUMMY = to_int(process.env.MAX_DUMMY as string);
+console.log("REDIS_H", REDIS_H);
+console.log("SERVER_NAME", SERVER_NAME);
+console.log("EXTERNAL_URL", EXTERNAL_URL);
+console.log("MAX_DUMMY", MAX_DUMMY);
 
 function is_ev() {
   if (REDIS_H != "DEV") return false;
@@ -21,7 +26,9 @@ function is_ev() {
 }
 
 export const IS_DEV = is_ev();
-console.log("IS_DEV", IS_DEV);
+if (IS_DEV) {
+  console.log("IS_DEV");
+}
 
 // 유니크 시작 번호
 let unique_id = 0;

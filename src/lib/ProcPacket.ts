@@ -44,18 +44,19 @@ proc_ws_map[NQ_Login.NO] = async (client: WebSocket2, arr: string[]) => {
 
   // 로그인 확인 작업
   var data = await get_token(req.token);
-  // console.log("get_token", data);
   if (data === null) {
     close_ws(client, "login_fail");
     return;
   }
+
+  console.log("get_token", data);
 
   const user_uid = data.user_uid;
   client.user_uid = user_uid;
   client.session = data;
   console.log("NQ_Login", client.index, client.session.user_name);
 
-  // 중복로그인 처리
+  // 중복 로그인 처리
   const other = user_map[user_uid];
   if (other !== undefined) {
     // 있던 유저 잘라냄
@@ -244,7 +245,11 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       }
 
       client.game_data.attr = req.value;
-      client.game_data.gold_spend += client.game_data.ball * 1000;
+
+      let total_lv = 0;
+      total_lv += client.game_data.ball;
+      total_lv += client.game_data.speed;
+      client.game_data.gold_spend += total_lv * 1000;
       break;
     case NQ_Game_Action.SCORE_UPLOAD:
       const arr = req.text.split("&");

@@ -39,6 +39,7 @@ import {
   //
   on_connection,
 } from "../ws";
+import { MAX_DUMMY } from "./helper";
 
 interface DummyData {
   user_uid: number;
@@ -158,20 +159,27 @@ export class DummyClient {
 }
 
 // 시작 더미 번호
-var start_dummy_user_uid = 0;
+let dummy_count = 0;
+export function can_create_dummy() {
+  if (dummy_count > MAX_DUMMY) {
+    return false;
+  }
+  return true;
+}
 
 // dummy 생성
 export function create_dummy(): DummyClient | null {
   // 더미 제공에 한계 부여
-  if (start_dummy_user_uid > 999) {
-    console.log("create_dummy fail, count over", start_dummy_user_uid);
+  if (false == can_create_dummy()) {
+    console.log("create_dummy fail, count over", dummy_count, MAX_DUMMY);
     return null;
   }
 
-  start_dummy_user_uid++;
+  dummy_count++;
+  const user_uid = dummy_count;
 
   var dummy = new DummyClient();
-  dummy.dummy_user_uid = start_dummy_user_uid;
+  dummy.dummy_user_uid = user_uid;
   dummy.is_dummy = true;
   dummy.is_dummy_class = true;
 

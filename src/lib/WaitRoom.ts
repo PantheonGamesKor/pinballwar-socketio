@@ -14,7 +14,7 @@ import {
   game_room_map,
 } from "./GameRoom";
 import { random, shuffle_list } from "./helper";
-import { create_dummy } from "./DummyClient";
+import { can_create_dummy, create_dummy } from "./DummyClient";
 
 export interface WaitUser {
   user_uid: number;
@@ -334,6 +334,7 @@ export class WaitRoom {
     });
 
     // 더미를 뽑아서 배치한다.
+    let no_more_dummy = false;
     cc_list.forEach((cc) => {
       const count = cc.user + cc.dummy;
       for (var i = count; i < 5; i++) {
@@ -348,10 +349,16 @@ export class WaitRoom {
           dwait.country = cc.country;
           dummy.session.country = cc.country;
         } else {
+          // 더미 제공 불가
+          if (false == can_create_dummy()) {
+            no_more_dummy = true;
+            return;
+          }
+
           // 더미 생성한다.
           const dummy = create_dummy();
           if (dummy === null) {
-            // 더미 제공 불가
+            no_more_dummy = true;
             return;
           }
 
@@ -361,6 +368,10 @@ export class WaitRoom {
         cc.dummy++;
       }
     });
+
+    if (no_more_dummy) {
+      console.log("no_more_dummy");
+    }
 
     return false;
   }
