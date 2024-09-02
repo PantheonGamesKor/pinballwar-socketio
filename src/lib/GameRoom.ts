@@ -13,6 +13,7 @@ import {
   NN_Game_Start,
   MAX_BALL_LV,
   MAX_SPEED_LV,
+  NS_Game_Finish,
 } from "../types_sock";
 import {
   //
@@ -32,6 +33,7 @@ export class GameRoom {
   user_list: WebSocket2[] = [];
   team_id_max: number = 0;
   country_team_map: CountryTeamMap = {};
+  last_update: number = unix_time();
 
   constructor(game_id: string) {
     this.game_id = game_id;
@@ -62,9 +64,25 @@ export class GameRoom {
     this.user_list.push(client);
   }
 
-  // 게임 끝내기
-  check_game_finish() {
-    // 모든 유저가 나갔다면 더미를 끝낸다.
+  // 주기적으로 방 없데이트
+  // 유저 패킷 올때마다 걸러서 체크
+  update_room() {
+    const now = unix_time();
+    const elapse = now - this.last_update;
+    if (elapse < 10) return;
+
+    console.log("gameroom update_room", this.game_id, this.user_list.length);
+    this.last_update = now;
+
+    if (false == this.game_start) {
+      this.check_loading();
+    }
+
+    this.check_dummy_only_play();
+  }
+
+  // 더미만 있으면 게임 끝낸다.
+  check_dummy_only_play() {
     let user_count = 0;
     let dummy_count = 0;
     this.user_list.forEach((v) => {
@@ -74,7 +92,7 @@ export class GameRoom {
         user_count++;
       }
     });
-    console.log("check_game_finish", user_count, dummy_count);
+    console.log("gameroom check_game_finish", user_count, dummy_count);
 
     // 유저가 없다면 더미를 끝낸다.
     if (user_count > 0) {
@@ -92,12 +110,15 @@ export class GameRoom {
     });
 
     //
-    this.user_list = [];
+    const res = new NS_Game_Finish();
+    const res_text = res.to_data();
     this.user_list.forEach((dummy) => {
-      // dummy.game_id = "";
       dummy.game_room = null;
+      dummy.send_text(res_text, res);
     });
+    this.user_list = [];
 
+    //
     delete game_room_map[this.game_id];
     console.log("game close", this.game_id);
   }
@@ -117,8 +138,6 @@ export class GameRoom {
     }
 
     // 게임방 정보 제거
-    // const c = this.user_list[pos];
-    // c.game_id = "";
     c.game_room = null;
 
     const game_log_text = JSON.stringify(c.game_log);
@@ -132,12 +151,31 @@ export class GameRoom {
         //
       })
       .catch((e) => {
-        console.log("leave_user redis_hset fail", key, user_uid, e);
+        console.log(
+          //
+          "leave_user redis_hset fail",
+          key,
+          user_uid,
+          e.message
+        );
       });
 
+    const now = unix_time();
     const key_history = redis_key("GAME_FINISH_HISTORY");
-    await get_redis() //
-      .zadd(key_history, unix_time(), user_uid);
+    get_redis() //
+      .zadd(key_history, now, user_uid)
+      .then(() => {
+        //
+      })
+      .catch((e) => {
+        console.log(
+          "leave_user redis_zadd fail",
+          key_history,
+          user_uid,
+          now,
+          e.message
+        );
+      });
 
     // 유저 제거
     this.user_list.splice(pos, 1);
@@ -164,8 +202,8 @@ export class GameRoom {
       this.check_loading();
     }
 
-    // 끝났을 수도 있다.
-    this.check_game_finish();
+    // 더미만 있으면 끝낸다.
+    this.check_dummy_only_play();
   }
 
   // 빈방인가

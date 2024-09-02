@@ -114,6 +114,11 @@ proc_ws_map[NQ_Echo.NO] = (client: WebSocket2, arr: string[]) => {
   }
 
   client.send_res(res);
+
+  // 방 업데이트 시도
+  if (client.game_room !== null) {
+    client.game_room.update_room();
+  }
 };
 // 대기방 입장
 proc_ws_map[NQ_Ready.NO] = (client: WebSocket2, arr: string[]) => {
@@ -276,6 +281,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
   res.value = req.value;
   res.text = req.text;
   game_room.send_res_all(res);
+  game_room.update_room();
 };
 
 // 게임 레디
