@@ -48,9 +48,9 @@ app.get("/status_pw", (_req, res) => {
     //
     const now = unix_time();
     let text = "  # waitroom";
-    text += `\n  dc: ${dummy_list.length}`;
-    text += `\n  cl: ${client_list.length}`;
-    text += `\n  ol: ${closed_list.length}`;
+    text += `\n  dummy: ${dummy_list.length}`;
+    text += `\n  client: ${client_list.length}`;
+    text += `\n  closed: ${closed_list.length}`;
 
     let wait_dummy = 0;
     for (const i in wait_room.list) {
@@ -122,41 +122,42 @@ ${text}
 });
 
 // 게임방 상태 보기
-// http://localhost:3000/status_pw_game/2
-app.get("/status_pw_game/:game_id", (req, res) => {
+// http://localhost:3000/status_pw/game/2
+// https://port-0-pinballwar-socketio-lz5h4e1jf52ea16b.sel4.cloudtype.app/status_pw/game/2
+app.get("/status_pw/game/:game_id", (req, res) => {
   const proc = function () {
     const now = unix_time();
     const game_id = req.params.game_id;
     let text = `# game ${game_id}`;
 
     if (game_room_map[game_id] === undefined) {
-      text = `\n  not found game_id=${text}`;
+      text += `\n  not found game_id=${text}`;
       return text;
     }
 
     const game = game_room_map[game_id];
     const elapse = now - game.time_create;
-    text = `\n  elapse: ${elapse}`;
-    text = `\n  game_start: ${game.game_start}`;
-    text = `\n  team_id_max: ${game.team_id_max}`;
-    text = `\n  country_team_map: ${game.country_team_map}`;
+    text += `\n  elapse: ${elapse}`;
+    text += `\n  game_start: ${game.game_start}`;
+    text += `\n  team_id_max: ${game.team_id_max}`;
+    text += `\n  country_team_map: ${game.country_team_map}`;
 
     for (const i in game.user_list) {
       const u = game.user_list[i];
 
       const last_recv = now - u.last_recv;
-      text = `\n  user: ${u.user_uid}`;
-      text = `\n    game_data: ${u.game_data}`;
-      text = `\n    last_recv: ${last_recv} ago`;
+      text += `\n  user: ${u.user_uid}`;
+      text += `\n    game_data: ${u.game_data}`;
+      text += `\n    last_recv: ${last_recv} ago`;
 
       if (u.is_dummy_class) {
         const d = u as any as DummyClient;
         const time_state = now - d.state_time;
         const sname = get_dummy_state(d.state);
         const left_time = d.next_action - now;
-        text = `\n    dummy: ${d.user_uid}`;
-        text = `\n      state: ${sname} / ${time_state} ago`;
-        text = `\n      action: ${left_time} left`;
+        text += `\n    dummy: ${d.user_uid}`;
+        text += `\n      state: ${sname} / ${time_state} ago`;
+        text += `\n      action: ${left_time} left`;
       }
     }
 
