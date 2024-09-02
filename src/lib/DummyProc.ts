@@ -55,12 +55,6 @@ export function on_dummy_update(dummy: DummyClient) {
     dummy.next_action = now + 1 + random(4);
 
     if (dummy.state == DUMMY_STATE.IDLE) {
-      // // 바로 레디 하지말고 대기자 리스트를 받는다.
-      // if (dummy.req_wait_room_hint) {
-      //   const req = new NQ_Echo();
-      //   req.text = `dummy_wait_room_hint`;
-      //   dummy.send_packet(req);
-      // }
       const req = new NQ_Ready();
       dummy.send_packet(req);
     } else if (dummy.state == DUMMY_STATE.WAITROOM) {
@@ -131,6 +125,7 @@ export async function dummy_recv_NS_Echo(dummy: DummyClient, res: NS_Echo) {
     dummy.state_time = now;
 
     var country = "";
+    // 미리예약한 국가로 셋팅
     if (typeof dummy.session.country == "string") {
       country = dummy.session.country;
     }
@@ -248,7 +243,8 @@ export function dummy_recv_NS_Login(dummy: DummyClient, res: NS_Login) {
   // dummy.req_wait_room_hint = true;
   dummy.state = DUMMY_STATE.IDLE;
   dummy.state_time = now;
-  dummy.next_action = now + 5 + random(5);
+  // dummy.next_action = now + 5 + random(5);
+  dummy.next_action = now; // 딜레이 없이 바로 투입
 }
 
 export function dummy_recv_NS_Ready(dummy: DummyClient, res: NS_Ready) {

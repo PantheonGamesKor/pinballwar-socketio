@@ -73,7 +73,8 @@ app.get("/status_pw", (_req, res) => {
     text += `\n  # waitroom total=${wait_room.list.length} dummy=${wait_dummy}`;
     for (const i in wait_room.list) {
       const wait = wait_room.list[i];
-      text += `\n  ${i}. ${wait.user_uid} c:${wait.country}`;
+      const wtime = now - wait.time;
+      text += `\n  ${i}. ${wait.user_uid}, c:${wait.country}, wtime:${wtime} ago`;
     }
 
     //
@@ -92,15 +93,15 @@ app.get("/status_pw", (_req, res) => {
         const dsec = now - d.state_time;
         const htime = `${dsec} ago`;
         const sname = get_dummy_state(d.state);
-        text += `\n  ${i}. status:${sname} / ${htime}`;
+        text += `\n  index:${d.index}. status:${sname} / ${htime}`;
       }
 
       if (c.is_waitroom) {
-        text += `\n  - u:${c.user_uid} wait c:${c.session.country}`;
+        text += `\n    u:${c.user_uid}, wait, c:${c.session.country}`;
       } else if (c.game_room !== null) {
-        text += `\n  - u:${c.user_uid} game id:${c.game_room.game_id} c:${c.session.country} t:${c.session.team}`;
+        text += `\n    u:${c.user_uid}, game, game_id:${c.game_room.game_id} c:${c.session.country}, team:${c.session.team}`;
       } else {
-        text += `\n  - u:${c.user_uid} else`;
+        text += `\n    u:${c.user_uid}, else`;
       }
     }
 
@@ -140,7 +141,10 @@ app.get("/status_pw/game/:game_id", (req, res) => {
     text += `\n  elapse: ${elapse}`;
     text += `\n  game_start: ${game.game_start}`;
     text += `\n  team_id_max: ${game.team_id_max}`;
-    text += `\n  country_team_map: ${game.country_team_map}`;
+    for (const k in game.country_team_map) {
+      const n = game.country_team_map;
+      text += `\n  country_team_map: ${k}= ${n}`;
+    }
 
     for (const i in game.user_list) {
       const u = game.user_list[i];

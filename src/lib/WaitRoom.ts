@@ -20,7 +20,7 @@ export interface WaitUser {
   user_uid: number;
   // client_index: number;
   country: string;
-  time: number;
+  time: number; // unix_time
   is_dummy: boolean;
   client: WebSocket2;
 }
@@ -121,9 +121,9 @@ export class WaitRoom {
 
   // 가장 오래기다린 유저
   get_longest_wait_user(): WaitUser | null {
-    var found: WaitUser | null = null;
-    var min = unix_time();
-
+    let found: WaitUser | null = null;
+    const now = unix_time();
+    let min = now;
     this.list.forEach((v) => {
       if (v.is_dummy) return; // 더미는 고려 안해도 됨
       if (min < v.time) return;
@@ -133,7 +133,12 @@ export class WaitRoom {
 
     if (found === null) return null;
 
-    var wait = found as WaitUser;
+    // 최소한 5초는 기다려준다.
+    if (now - min < 5) {
+      return null;
+    }
+
+    const wait = found as WaitUser;
     return wait;
   }
 
@@ -368,8 +373,9 @@ export class WaitRoom {
             break;
           }
 
-          // 로그인 부터 진행, 국가 설정은 무의미하다.
-          // dummy.session.country = cc.country;
+          // 국기 예약가능
+          dummy.session.country = cc.country;
+
           cc.dummy++;
           create_dummy_count++;
         }
