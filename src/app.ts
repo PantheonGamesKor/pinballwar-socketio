@@ -31,6 +31,7 @@ import {
   get_dummy_state,
 } from "./lib/DummyClient";
 import moment from "moment";
+import { game_room_map } from "./lib/GameRoom";
 
 export const app = express();
 // const server: HTTP_SERVER = http.createServer(app);
@@ -41,10 +42,78 @@ app.get("/", (_req, res) => {
 
 // 상태보기
 // http://localhost:3000/status_pw
+// https://port-0-pinballwar-socketio-lz5h4e1jf52ea16b.sel4.cloudtype.app/status_pw
 app.get("/status_pw", (_req, res) => {
+  const proc = function () {
+    //
+    const now = unix_time();
+    let text = "  # waitroom";
+    text += `\n  dc: ${dummy_list.length}`;
+    text += `\n  cl: ${client_list.length}`;
+    text += `\n  ol: ${closed_list.length}`;
+
+    let wait_dummy = 0;
+    for (const i in wait_room.list) {
+      const wait = wait_room.list[i];
+      if (wait.is_dummy) wait_dummy++;
+    }
+
+    let state_map: number[] = [];
+    for (const i in dummy_list) {
+      const d = dummy_list[i];
+      if (state_map[d.state] === undefined) {
+        state_map[d.state] = 1;
+      } else {
+        state_map[d.state]++;
+      }
+    }
+
+    // waitroom
+    text += `\n`;
+    text += `\n  # waitroom total=${wait_room.list.length} dummy=${wait_dummy}`;
+    for (const i in wait_room.list) {
+      const wait = wait_room.list[i];
+      text += `\n  ${i}. ${wait.user_uid} c:${wait.country}`;
+    }
+
+    //
+    text += `\n`;
+    text += `\n  # dummy_list ${dummy_list.length}`;
+    state_map.forEach((n, i) => {
+      const sname = get_dummy_state(i);
+      text += `\n  ${sname}: ${n}`;
+    });
+
+    for (const i in dummy_list) {
+      const d = dummy_list[i];
+      const c = d as any as WebSocket2;
+
+      {
+        const dsec = now - d.state_time;
+        const htime = `${dsec} ago`;
+        const sname = get_dummy_state(d.state);
+        text += `\n  ${i}. status:${sname} / ${htime}`;
+      }
+
+      if (c.is_waitroom) {
+        text += `\n  - u:${c.user_uid} wait c:${c.session.country}`;
+      } else if (c.game_room !== null) {
+        text += `\n  - u:${c.user_uid} game id:${c.game_room.game_id} c:${c.session.country} t:${c.session.team}`;
+      } else {
+        text += `\n  - u:${c.user_uid} else`;
+      }
+    }
+
+    return text;
+  };
+
   try {
-    const text = print_status();
-    res.send(text);
+    const text = proc();
+    res.send(`
+<pre>
+${text}
+</pre>
+      `);
   } catch (e) {
     res.status(500);
     console.log("/status_pw fail", e);
@@ -52,51 +121,61 @@ app.get("/status_pw", (_req, res) => {
   }
 });
 
-// 상태 출력
-function print_status(): string {
-  const now = unix_time();
-  let text = "  # waitroom";
-  text += `\n  dc: ${dummy_list.length}`;
-  text += `\n  cl: ${client_list.length}`;
-  text += `\n  ol: ${closed_list.length}`;
+// 게임방 상태 보기
+// http://localhost:3000/status_pw_game/2
+app.get("/status_pw_game/:game_id", (req, res) => {
+  const proc = function () {
+    const now = unix_time();
+    const game_id = req.params.game_id;
+    let text = `# game ${game_id}`;
 
-  // waitroom
-  text += `\n`;
-  text += `\n  # waitroom ${wait_room.list.length}`;
-  for (const i in wait_room.list) {
-    const wait = wait_room.list[i];
-    text += `\n  ${i}. ${wait.user_uid} c:${wait.country}`;
-  }
-
-  //
-  text += `\n`;
-  text += `\n  # dummy_list ${dummy_list.length}`;
-  for (const i in dummy_list) {
-    const d = dummy_list[i];
-    const c = d as any as WebSocket2;
-
-    {
-      const dsec = now - d.state_time;
-      const htime = `${dsec} ago`;
-      const sname = get_dummy_state(d.state);
-      text += `\n  ${i}. status:${sname} / ${htime}`;
+    if (game_room_map[game_id] === undefined) {
+      text = `\n  not found game_id=${text}`;
+      return text;
     }
 
-    if (c.is_waitroom) {
-      text += `\n  - u:${c.user_uid} wait c:${c.session.country}`;
-    } else if (c.game_room !== null) {
-      text += `\n  - u:${c.user_uid} game c:${c.session.country} t:${c.session.team}`;
-    } else {
-      text += `\n  - u:${c.user_uid} else`;
-    }
-  }
+    const game = game_room_map[game_id];
+    const elapse = now - game.time_create;
+    text = `\n  elapse: ${elapse}`;
+    text = `\n  game_start: ${game.game_start}`;
+    text = `\n  team_id_max: ${game.team_id_max}`;
+    text = `\n  country_team_map: ${game.country_team_map}`;
 
-  return `
+    for (const i in game.user_list) {
+      const u = game.user_list[i];
+
+      const last_recv = now - u.last_recv;
+      text = `\n  user: ${u.user_uid}`;
+      text = `\n    game_data: ${u.game_data}`;
+      text = `\n    last_recv: ${last_recv} ago`;
+
+      if (u.is_dummy_class) {
+        const d = u as any as DummyClient;
+        const time_state = now - d.state_time;
+        const sname = get_dummy_state(d.state);
+        const left_time = d.next_action - now;
+        text = `\n    dummy: ${d.user_uid}`;
+        text = `\n      state: ${sname} / ${time_state} ago`;
+        text = `\n      action: ${left_time} left`;
+      }
+    }
+
+    return text;
+  };
+
+  try {
+    let text = proc();
+    res.send(`
 <pre>
 ${text}
 </pre>
-  `;
-}
+      `);
+  } catch (e) {
+    res.status(500);
+    console.log("/status_pw_game fail", e);
+    res.send("fail");
+  }
+});
 
 let update_count = 0;
 export function init_socket_io(server: HttpServer2) {

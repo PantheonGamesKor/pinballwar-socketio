@@ -56,7 +56,6 @@ export function on_connection(_sock: WebSocket) {
     // client.session = {} as TokenData;
     client.user_uid = 0;
     client.is_waitroom = false; // conn
-    // client.game_id = "";
     client.game_room = null;
     client.load_complete = false;
 
