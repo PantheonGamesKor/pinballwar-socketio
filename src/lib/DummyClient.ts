@@ -56,6 +56,22 @@ export enum DUMMY_STATE {
   GAMEROOM = 4,
   // GAMEROOM_LEAVE = 5,
 }
+export function get_dummy_state(s: DUMMY_STATE): string {
+  switch (s) {
+    case DUMMY_STATE.OFFLINE:
+      return "OFFLINE";
+    case DUMMY_STATE.CONNECTING:
+      return "CONNECTING";
+    case DUMMY_STATE.IDLE:
+      return "IDLE";
+    case DUMMY_STATE.WAITROOM:
+      return "WAITROOM";
+    case DUMMY_STATE.GAMEROOM:
+      return "GAMEROOM";
+    default:
+      return `UNKNOWN-${s}`;
+  }
+}
 
 export class DummyClient {
   // dummy value
@@ -160,6 +176,8 @@ export class DummyClient {
 
 // 시작 더미 번호
 let dummy_count = 0;
+export const dummy_list: DummyClient[] = [];
+
 export function can_create_dummy() {
   if (dummy_count > MAX_DUMMY) {
     return false;
@@ -185,6 +203,8 @@ export function create_dummy(): DummyClient | null {
 
   var c: any = dummy;
   on_connection(c as WebSocket);
+
+  dummy_list.push(dummy);
 
   return dummy;
 }

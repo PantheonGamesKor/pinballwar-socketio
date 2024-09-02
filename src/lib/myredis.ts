@@ -39,9 +39,8 @@ export async function init() {
 
   // 테스트 쿼리
   try {
-    console.log("myredis init test query, starta");
     const data = await get_redis().get("a");
-    console.log("myredis init test query, ok ret=", data);
+    console.log("myredis init test query, ok", data);
   } catch (e) {
     console.log("myredis init test query, ng error=", e);
   }

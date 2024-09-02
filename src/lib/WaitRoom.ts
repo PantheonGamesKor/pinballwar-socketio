@@ -70,7 +70,7 @@ export class WaitRoom {
     }
 
     this.list.splice(i, 1);
-    console.log("WaitRoom remove ok", this.list.length);
+    console.log("WaitRoom leave ok, left=", this.list.length);
     return true;
   }
 
@@ -167,6 +167,9 @@ export class WaitRoom {
 
     const now = unix_time();
 
+    // 시작 가능한 최소 인원
+    const MIN_START_USER = 5;
+
     // 한국가에 5명 넘는 경우 시작한다.
     const map = this.country_count();
     const count_list: CountryCount[] = [];
@@ -175,17 +178,16 @@ export class WaitRoom {
       var cc = map[country];
       user_count += cc.user;
       // if (cc.user < 1) continue; // 더미만 있는 국가 허용
-      if (cc.user + cc.dummy < 5) continue;
+      if (cc.user + cc.dummy < MIN_START_USER) continue;
       count_list.push(cc);
     }
 
-    // 사람없으면 패스
+    // 사람 없으면 패스
     if (user_count == 0) {
       return false;
     }
 
-    console.log("update_match", map, count_list.length);
-
+    //
     if (count_list.length >= 2) {
       // 2~4 팀으로 시작
       var team_count = 2;
@@ -195,7 +197,7 @@ export class WaitRoom {
         team_count = 3;
       }
 
-      console.log("update_match count=", team_count, count_list);
+      console.log("update_match start, team=", team_count, count_list);
 
       const country_list: string[] = [];
       const user_list_list: WaitUser[][] = [];
@@ -221,18 +223,16 @@ export class WaitRoom {
       user_list_list.forEach((u1_list) => {
         u1_list.findIndex((v, i: number) => {
           start_list.push(v);
-          // const c = client_list[v.client_index];
+
           const c = v.client;
-          // if (c !== null) {
           c.session.team = 1;
-          // }
+
           return i == min_count;
         });
       });
 
-      // 대기자에서 빼낸다.
+      // 대기실에서 나온다.
       start_list.forEach((v) => {
-        // this.remove(v.user_uid);
         this.leave(v.client);
       });
 
@@ -246,16 +246,11 @@ export class WaitRoom {
 
       // 게임방에 유저 입장
       start_list.forEach((v) => {
-        // const client = client_list[v.client_index];
         const client = v.client;
-        // if (client === null) {
-        //   // 없는 client 가 발생했다면 소켓 관리 방식에 문제가 있는거다.
-        //   console.error("[ERR] game start skip, client is numm", v);
-        //   return;
-        // }
         game_room.add_user(client);
       });
 
+      //
       game_room.print_log();
 
       // 게임방 정보 전송
@@ -263,44 +258,40 @@ export class WaitRoom {
       return true;
     }
 
-    console.log("update_match, make 2 team");
-
-    // 사람이 너무 적어 시작할 수 없는 경우
-    // 분산된 더미를 몰어넣음
-    count_list.splice(0, count_list.length);
-    for (const country in map) {
-      var cc = map[country];
-      count_list.push(cc);
-    }
-
     // 가장 오래기다린 유저를 찾는다.
     const wait_user = this.get_longest_wait_user();
     if (wait_user === null) {
       // 사암이 없다. 아무일도 일어나지 않음
-      // console.log("update_match, not found user");
+      // console.log("update_match not found user");
       return false;
     }
 
-    // 유저 발견, 국가를 4개 만든다.
-    const max_country = 4;
-    const c_list = [wait_user.country];
-    this.list.forEach((v) => {
-      if (c_list.length >= max_country) return;
-      if (v.is_dummy) return;
+    // 게임방을 만들 수 없어 기다린다.
+    console.log("update_match wait", map, count_list.length);
 
-      const pos = c_list.indexOf(v.country);
-      if (pos >= 0) return;
+    // 가장 오래기다린 유저를 포함해 국가 4개를 만든다.
+    const MAX_TEAM = 4;
+    const cand_list = [wait_user.country];
+    for (let i in this.list) {
+      const v = this.list[i];
+      if (cand_list.length >= MAX_TEAM) break;
 
-      c_list.push(v.country);
-    });
+      // 더미 국가는 제외
+      if (v.is_dummy) continue;
+      // 이미 있는 국가는 제외
+      const pos = cand_list.indexOf(v.country);
+      if (pos >= 0) continue;
 
-    // 없는 국가 동원해서 4개 채운다.
-    make_random_country(c_list, max_country);
-    console.log("update_match, make_random_country", c_list);
+      cand_list.push(v.country);
+    }
+
+    // 여기까지 와도 국가가 부족하면 랜덤으로 채운다.
+    make_random_country(cand_list, MAX_TEAM);
+    console.log("update_match wait,  cand_list=", cand_list);
 
     // 유저 수만 뽑아낸다.
     const cc_list: CountryCount[] = [];
-    c_list.forEach((c) => {
+    cand_list.forEach((c) => {
       var cc: CountryCount | null = null;
       for (var i = 0; i < count_list.length; i++) {
         const cc2 = count_list[i];
@@ -309,24 +300,26 @@ export class WaitRoom {
         break;
       }
 
-      if (cc !== null) {
-        cc_list.push({
-          country: c,
-          dummy: 0,
-          user: cc.user,
-        });
-      } else {
+      // 사람 없는 국가
+      if (cc === null) {
         cc_list.push({
           country: c,
           dummy: 0,
           user: 0,
         });
+        return;
       }
+
+      // 있으면 사람 정보만 사용
+      cc_list.push({
+        country: c,
+        dummy: 0,
+        user: cc.user,
+      });
     });
+    console.log("update_match wait, cc_list=", cc_list);
 
-    console.log("update_match cc_list", cc_list);
-
-    // 더미만 있는 리스트, 여기서 뽑아 쓴다.
+    // 더미 리스트 만들기
     const dummy_list: WaitUser[] = [];
     this.list.forEach((d) => {
       if (false === d.is_dummy) return;
@@ -335,42 +328,47 @@ export class WaitRoom {
 
     // 더미를 뽑아서 배치한다.
     let no_more_dummy = false;
-    cc_list.forEach((cc) => {
+    for (const k in cc_list) {
+      const cc = cc_list[k];
       const count = cc.user + cc.dummy;
-      for (var i = count; i < 5; i++) {
+
+      // 빈자리 채워넣기
+      for (let i = count; i < MIN_START_USER; i++) {
         if (dummy_list.length > 1) {
-          const dwait = dummy_list[0];
+          // 더미 있으면 뽑아쓰고
+          const wait_dummy = dummy_list[0];
           dummy_list.splice(0, 1);
 
-          // const dummy = client_list[dwait.client_index];
-          const dummy = dwait.client;
-          if (dummy === null) return;
+          wait_dummy.country = cc.country;
 
-          dwait.country = cc.country;
+          const dummy = wait_dummy.client;
           dummy.session.country = cc.country;
+          cc.dummy++;
         } else {
-          // 더미 제공 불가
+          // 더미 없으면 만들어 쓰고
           if (false == can_create_dummy()) {
+            // 더미 제공 불가
             no_more_dummy = true;
-            return;
+            break;
           }
 
           // 더미 생성한다.
           const dummy = create_dummy();
           if (dummy === null) {
             no_more_dummy = true;
-            return;
+            break;
           }
 
-          dummy.session.country = cc.country;
+          // 로그인 부터 진행, 국가 설정은 무의미하다.
+          // dummy.session.country = cc.country;
+          cc.dummy++;
         }
-
-        cc.dummy++;
       }
-    });
+    }
 
+    // 에러 로그는 한번만 출력
     if (no_more_dummy) {
-      console.log("no_more_dummy");
+      console.log("update_match wait, no_more_dummy");
     }
 
     return false;
@@ -380,26 +378,61 @@ export class WaitRoom {
 // 랜덤 국가로 채운다.
 // 겹치지 않게
 export function make_random_country(list: string[], count: number) {
-  const candidate_list: string[] = ["kor", "usa", "chn", "jpn", "eng"];
-  shuffle_list(candidate_list);
+  const candidate_list: string[] = [
+    "kor",
+    "usa",
+    "chn",
+    "jpn",
+    "pol",
+    "tur",
+    "arm",
+    "jam",
+    "lux",
+    "bel",
+    "ggy",
+    "mdg",
+    "uzb",
+    "yem",
+    "vnm",
+  ];
 
-  for (var i = 0; i < candidate_list.length; i++) {
+  // 겹치는거 제거
+  list.forEach((d) => {
+    for (var i = 0; i < candidate_list.length; i++) {
+      const c = candidate_list[i];
+      if (c != d) continue;
+      candidate_list.splice(i, 1);
+      // console.log("remove", c);
+      break;
+    }
+  });
+
+  // 랜덤 추가
+  for (var i = list.length; i < count; i++) {
     const r = random(candidate_list.length);
     const c = candidate_list[r];
     candidate_list.splice(r, 1);
-    candidate_list.push(c);
-  }
-
-  for (var i = 0; i < candidate_list.length; i++) {
-    if (list.length >= count) break;
-
-    // 있으면 안됨
-    const c = candidate_list[i];
-    const pos = list.indexOf(c);
-    if (pos >= 0) continue;
 
     list.push(c);
   }
+
+  // for (var i = 0; i < candidate_list.length; i++) {
+  //   const r = random(candidate_list.length);
+  //   const c = candidate_list[r];
+  //   candidate_list.splice(r, 1);
+  //   candidate_list.push(c);
+  // }
+
+  // for (var i = 0; i < candidate_list.length; i++) {
+  //   if (list.length >= count) break;
+
+  //   // 있으면 안됨
+  //   const c = candidate_list[i];
+  //   const pos = list.indexOf(c);
+  //   if (pos >= 0) continue;
+
+  //   list.push(c);
+  // }
 }
 
 export const wait_room = new WaitRoom();

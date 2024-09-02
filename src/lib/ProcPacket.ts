@@ -49,7 +49,7 @@ proc_ws_map[NQ_Login.NO] = async (client: WebSocket2, arr: string[]) => {
     return;
   }
 
-  console.log("get_token", data);
+  // console.log("get_token", data);
 
   const user_uid = data.user_uid;
   client.user_uid = user_uid;
