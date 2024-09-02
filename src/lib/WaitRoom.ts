@@ -327,7 +327,7 @@ export class WaitRoom {
     });
 
     // 더미를 뽑아서 배치한다.
-    let no_more_dummy = false;
+    let create_dummy_count = 0;
     for (const k in cc_list) {
       const cc = cc_list[k];
       const count = cc.user + cc.dummy;
@@ -345,30 +345,35 @@ export class WaitRoom {
           dummy.session.country = cc.country;
           cc.dummy++;
         } else {
+          // 한번에 생성량 제한
+          if (create_dummy_count > 5) {
+            console.log(
+              "update_match wait, create_dummy_count over",
+              create_dummy_count
+            );
+            break;
+          }
+
           // 더미 없으면 만들어 쓰고
           if (false == can_create_dummy()) {
             // 더미 제공 불가
-            no_more_dummy = true;
+            console.log("update_match wait, can_create_dummy fail");
             break;
           }
 
           // 더미 생성한다.
           const dummy = create_dummy();
           if (dummy === null) {
-            no_more_dummy = true;
+            console.log("update_match wait, create_dummy fail");
             break;
           }
 
           // 로그인 부터 진행, 국가 설정은 무의미하다.
           // dummy.session.country = cc.country;
           cc.dummy++;
+          create_dummy_count++;
         }
       }
-    }
-
-    // 에러 로그는 한번만 출력
-    if (no_more_dummy) {
-      console.log("update_match wait, no_more_dummy");
     }
 
     return false;
