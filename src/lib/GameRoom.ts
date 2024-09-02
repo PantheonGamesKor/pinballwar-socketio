@@ -100,7 +100,7 @@ export class GameRoom {
     }
 
     // 이방에 모든 유저는 더미
-    console.log("check_game_finish, all dummy, game close");
+    // console.log("check_game_finish, all user is dummy");
 
     // 더미 처리
     this.user_list.forEach((dummy) => {
@@ -120,7 +120,7 @@ export class GameRoom {
 
     //
     delete game_room_map[this.game_id];
-    console.log("game close", this.game_id);
+    console.log("game_close", this.game_id);
   }
 
   // 유저 나감

@@ -8,15 +8,16 @@ import {
 } from "http";
 import { TokenData } from "./lib/myredis";
 
-// const
-export const MAX_BALL_LV = 200;
-export const MAX_SPEED_LV = 200;
-
 // socket.io
 import { Server, Socket } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { GameRoom } from "./lib/GameRoom";
 
+// const
+export const MAX_BALL_LV = 200;
+export const MAX_SPEED_LV = 200;
+
+// type
 export type HttpServer2 = HttpServer<
   //
   typeof IncomingMessage,
@@ -49,7 +50,7 @@ interface GAME_LOG {
   cash: number;
 }
 
-// WSClient
+// WebSocket2
 export interface WebSocket2 extends WebSocket {
   // value
   index: number;
@@ -76,19 +77,9 @@ export interface WebSocket2 extends WebSocket {
 }
 
 //
-// WebSocket 패킷
+// 함수
 //
 
-export abstract class NetPacket {
-  no = 0;
-
-  from_data(arr: string[]) {
-    throw new Error("need from_data");
-  }
-  to_data(): string {
-    throw new Error("need to_data");
-  }
-}
 
 //
 function args_to_data(...args: any): string {
@@ -99,10 +90,6 @@ function args_to_data(...args: any): string {
   });
   return text;
 }
-
-//
-// 함수
-//
 
 // 짧게 줄임
 export const to_int = Number.parseInt;
@@ -131,6 +118,17 @@ export function time_format(m: Moment | null = null) {
 //
 // 패킷
 //
+
+export abstract class NetPacket {
+  no = 0;
+
+  from_data(arr: string[]) {
+    throw new Error("need from_data");
+  }
+  to_data(): string {
+    throw new Error("need to_data");
+  }
+}
 
 //
 export class NQ_Login extends NetPacket {

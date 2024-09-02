@@ -41,7 +41,7 @@ const LIVE_RECV_TIME = 60; // 초단위, 통신이 없어도 유지하는 시간
 export function on_connection(_sock: WebSocket) {
   const client = _sock as WebSocket2;
 
-  // conn_client start
+  // 초기화 - 시작
   {
     // 빈자리가 없으면 추가한다.
     if (closed_list.length < 1) {
@@ -83,34 +83,48 @@ export function on_connection(_sock: WebSocket) {
       };
     }
   }
-  // conn_client - end;
+  // 초기화 -끝
 
-  client.on("message", (msg) => {
-    if (client.index < 0) {
-      close_ws(client, "recv but index < 0");
-      return;
-    }
-
-    // console.log("message", client.index, msg);
-    client.last_recv = unix_time();
-
-    const arr = msg.split(",");
-    var cmd = arr[0];
-    var func = proc_ws_map[cmd];
-    if (func === undefined) {
-      close_ws(client, "unknown cmd, " + msg);
-      return;
-    }
+  client.on("message", (_msg) => {
+    let arr: string[] = [];
 
     try {
+      if (client.index < 0) {
+        close_ws(client, "recv but index < 0");
+        return;
+      }
+
+      client.last_recv = unix_time();
+
+      const msg = _msg as string;
+      arr = msg.split(",");
+
+      const cmd = arr[0];
+      const func = proc_ws_map[cmd];
+      if (func === undefined) {
+        close_ws(client, "message unknown cmd, " + msg);
+        return;
+      }
+
       func(client, arr);
-    } catch (err) {
-      console.log("proc_ws catch", arr, err);
+    } catch (_e) {
+      const e = _e as Error;
+      console.error("message_catch", arr, e);
+
+      try {
+        close_ws(client, `message_cath:${e.message}`);
+      } catch (e2) {
+        console.error("message_catch_2", arr, e2);
+      }
     }
   });
 
   client.on("disconnect", (reason) => {
-    close_ws(client, "disconnect, " + reason);
+    try {
+      close_ws(client, "disconnect:" + reason);
+    } catch (e) {
+      console.error("disconnect_catch", e);
+    }
   });
 
   // start packet
