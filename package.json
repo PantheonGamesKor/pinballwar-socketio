@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build": "tsc",
+    "build": "",
+    "build2": "tsc",
     "dev": "ts-node .\\cmd_dev.ts"
   },
   "author": "",
