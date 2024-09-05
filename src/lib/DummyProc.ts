@@ -19,6 +19,8 @@ import {
   NN_Ready_Join,
   NN_Game_Leave,
   NQ_Game_Action,
+  MAX_BALL_LV,
+  MAX_SPEED_LV,
 } from "../types_sock";
 import {
   //
@@ -75,6 +77,7 @@ export function on_dummy_update(dummy: DummyClient) {
       }
 
       // 랜덤 액션
+      /*
       // const seq = update_action_count % 6;
       const ratio = random(100);
       if (ratio < 10) {
@@ -111,6 +114,46 @@ export function on_dummy_update(dummy: DummyClient) {
         req.value = 1 + random(9);
         dummy.send_packet(req);
       }
+      */
+      let done = false;
+      if (dummy.game_data.ball < dummy.game_data.speed) {
+        // 공늘리기
+        if (dummy.game_data.ball <= MAX_BALL_LV) {
+          let d = MAX_BALL_LV - dummy.game_data.ball;
+          if (d > 30) d = 30;
+
+          const req = new NQ_Game_Action();
+          req.action = NQ_Game_Action.BALL_ADD;
+          req.value = d;
+          dummy.send_packet(req);
+          dummy.next_action = now + random(30);
+          done = true;
+        }
+      } else {
+        // 속도 늘리기
+        if (dummy.game_data.ball <= MAX_BALL_LV) {
+          let d = MAX_SPEED_LV - dummy.game_data.speed;
+          if (d > 30) d = 30;
+
+          const req = new NQ_Game_Action();
+          req.action = NQ_Game_Action.SPEED_UP;
+          req.value = d;
+          dummy.send_packet(req);
+          dummy.next_action = now + random(30);
+          done = true;
+        }
+      }
+
+      if (false == done) {
+        // 속성 변경
+        const req = new NQ_Game_Action();
+        req.action = NQ_Game_Action.CHANGE_ATTR;
+        req.value = random(5);
+        dummy.send_packet(req);
+        dummy.next_action = now + 60 + random(60);
+        done = true;
+      }
+
       // ACTION END
     }
   }

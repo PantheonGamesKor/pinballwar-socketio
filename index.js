@@ -1,5 +1,8 @@
 // index.js
-const { app, init_socket_io } = require("./dist/app");
+// const { app, init_socket_io } = require("./dist/app");
+require("ts-node").register();
+const { app, init_socket_io } = require("./src/app.ts");
+
 const http = require("http");
 const server = http.createServer(app);
 const PORT = 3000;

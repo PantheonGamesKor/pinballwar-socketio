@@ -80,7 +80,6 @@ export interface WebSocket2 extends WebSocket {
 // 함수
 //
 
-
 //
 function args_to_data(...args: any): string {
   var text = "";
