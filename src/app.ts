@@ -168,11 +168,9 @@ app.get("/status_pw/game/:game_id", (req, res) => {
   try {
     const game_id = req.params.game_id;
     let text = proc_status_pw_game(game_id);
-    res.send(`
-<pre>
-${text}
-</pre>
-      `);
+
+    res.setHeader("content-type", "text/plain");
+    res.send(text);
   } catch (e) {
     console.log("proc_status_pw_game fail", e);
     res.status(500);
