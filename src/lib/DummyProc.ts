@@ -26,6 +26,7 @@ import {
   //
   DUMMY_STATE,
   DummyClient,
+  AI_TYPE,
 } from "./DummyClient";
 import { set_token } from "./myredis";
 import {
@@ -57,6 +58,18 @@ export function on_dummy_update(dummy: DummyClient) {
     dummy.next_action = now + 1 + random(4);
 
     if (dummy.state == DUMMY_STATE.IDLE) {
+      const r = random(10);
+      if (r < 4) {
+        dummy.ai_data.type = AI_TYPE.SLOW;
+      } else if (r < 8) {
+        dummy.ai_data.type = AI_TYPE.FAST;
+      } else {
+        dummy.ai_data.type = AI_TYPE.NONE;
+      }
+
+      dummy.ai_data.max_lv = 50 + random(100);
+
+      //
       const req = new NQ_Ready();
       dummy.send_packet(req);
     } else if (dummy.state == DUMMY_STATE.WAITROOM) {
@@ -77,83 +90,99 @@ export function on_dummy_update(dummy: DummyClient) {
       }
 
       // 랜덤 액션
-      /*
-      // const seq = update_action_count % 6;
-      const ratio = random(100);
-      if (ratio < 10) {
-        // 채팅도 보내본다.
-        // const req = new NQ_Game_Action();
-        // req.action = NQ_Game_Action.CHAT;
-        // req.text = `dummy chat ${dummy.update_action_count}`;
-        // dummy.send_packet(req);
-      } else if (ratio < 20) {
-        // 다음 액션은 좀 더 오래 기다림
-        dummy.next_action = now + 5 + random(15);
+      const gd = dummy.game_data;
+      const ai = dummy.ai_data;
+      if (dummy.ai_data.type == AI_TYPE.SLOW) {
+        const ratio = random(100);
+        if (ratio < 10) {
+          // 채팅도 보내본다.
+          // const req = new NQ_Game_Action();
+          // req.action = NQ_Game_Action.CHAT;
+          // req.text = `dummy chat ${dummy.update_action_count}`;
+          // dummy.send_packet(req);
+        } else if (ratio < 20) {
+          // 다음 액션은 좀 더 오래 기다림
+          dummy.next_action = now + 30 + random(30);
 
-        // 속성 변경
-        const req = new NQ_Game_Action();
-        req.action = NQ_Game_Action.CHANGE_ATTR;
-        req.value = random(5);
-        dummy.send_packet(req);
-      } else if (ratio < 60) {
-        // 다음 액션은 좀 더 오래 기다림
-        dummy.next_action = now + 5 + random(15);
-
-        // 공 추가
-        const req = new NQ_Game_Action();
-        req.action = NQ_Game_Action.BALL_ADD;
-        req.value = 1 + random(9);
-        dummy.send_packet(req);
-      } else if (ratio < 90) {
-        // 다음 액션은 좀 더 오래 기다림
-        dummy.next_action = now + 5 + random(15);
-
-        // 공 속도 업
-        const req = new NQ_Game_Action();
-        req.action = NQ_Game_Action.SPEED_UP;
-        req.value = 1 + random(9);
-        dummy.send_packet(req);
-      }
-      */
-      let done = false;
-      if (dummy.game_data.ball < dummy.game_data.speed) {
-        // 공늘리기
-        if (dummy.game_data.ball <= MAX_BALL_LV) {
-          let d = MAX_BALL_LV - dummy.game_data.ball;
-          if (d > 30) d = 30;
-
+          // 속성 변경
           const req = new NQ_Game_Action();
-          req.action = NQ_Game_Action.BALL_ADD;
-          req.value = d;
+          req.action = NQ_Game_Action.CHANGE_ATTR;
+          req.value = random(5);
           dummy.send_packet(req);
-          dummy.next_action = now + random(30);
+        } else {
+          // 다음 액션은 좀 더 오래 기다림
+          dummy.next_action = now + 5 + random(10);
+
+          // 공과 속도중 레벨이 낮은걸 올림
+          if (gd.ball < gd.speed) {
+            // 공 추가
+            let v = ai.max_lv - gd.ball;
+            if (v > 0) {
+              if (v > 10) v = 10;
+              const req = new NQ_Game_Action();
+              req.action = NQ_Game_Action.BALL_ADD;
+              req.value = v;
+              dummy.send_packet(req);
+            }
+          } else {
+            // 공 속도 업
+            let v = ai.max_lv - gd.speed;
+            if (v > 0) {
+              if (v > 10) v = 10;
+              const req = new NQ_Game_Action();
+              req.action = NQ_Game_Action.SPEED_UP;
+              req.value = 1 + random(9);
+              dummy.send_packet(req);
+            }
+          }
+        }
+      } else if (dummy.ai_data.type == AI_TYPE.FAST) {
+        // 초반부터 최대로 올린다.
+        dummy.next_action = now + random(10);
+
+        let done = false;
+        if (gd.ball < gd.speed) {
+          // 공 추가
+          let v = ai.max_lv - gd.ball;
+          if (v > 0) {
+            if (v > 30) v = 30;
+
+            const req = new NQ_Game_Action();
+            req.action = NQ_Game_Action.BALL_ADD;
+            req.value = v;
+            dummy.send_packet(req);
+            dummy.next_action = now + random(30);
+            done = true;
+          }
+        } else {
+          // 속도 늘리기
+          let v = ai.max_lv - gd.speed;
+          if (v > 0) {
+            if (v > 30) v = 30;
+
+            const req = new NQ_Game_Action();
+            req.action = NQ_Game_Action.SPEED_UP;
+            req.value = v;
+            dummy.send_packet(req);
+            dummy.next_action = now + random(30);
+            done = true;
+          }
+        }
+
+        if (false == done) {
+          dummy.next_action = now + 30 + random(60);
+
+          // 속성 변경
+          const req = new NQ_Game_Action();
+          req.action = NQ_Game_Action.CHANGE_ATTR;
+          req.value = random(5);
+          dummy.send_packet(req);
+          dummy.next_action = now + 60 + random(60);
           done = true;
         }
       } else {
-        // 속도 늘리기
-        if (dummy.game_data.ball <= MAX_BALL_LV) {
-          let d = MAX_SPEED_LV - dummy.game_data.speed;
-          if (d > 30) d = 30;
-
-          const req = new NQ_Game_Action();
-          req.action = NQ_Game_Action.SPEED_UP;
-          req.value = d;
-          dummy.send_packet(req);
-          dummy.next_action = now + random(30);
-          done = true;
-        }
+        // 동작없음
       }
-
-      if (false == done) {
-        // 속성 변경
-        const req = new NQ_Game_Action();
-        req.action = NQ_Game_Action.CHANGE_ATTR;
-        req.value = random(5);
-        dummy.send_packet(req);
-        dummy.next_action = now + 60 + random(60);
-        done = true;
-      }
-
       // ACTION END
     }
   }
@@ -174,7 +203,10 @@ export async function dummy_recv_NS_Echo(dummy: DummyClient, res: NS_Echo) {
     }
 
     let no = (dummy.dummy_user_uid % 50) + 1;
-    const img = `https://fkkmionpfegwfauynejk.supabase.co/storage/v1/object/public/profile/web/dummy_${no}.jpg`;
+    let img = `https://fkkmionpfegwfauynejk.supabase.co/storage/v1/object/public/profile/web/dummy_${no}.jpg`;
+    if (no > 50) {
+      img = "";
+    }
     const user_name = make_random_user_name();
 
     // todo 토큰 넣고

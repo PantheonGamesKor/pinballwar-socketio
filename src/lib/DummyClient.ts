@@ -73,6 +73,17 @@ export function get_dummy_state(s: DUMMY_STATE): string {
   }
 }
 
+export enum AI_TYPE {
+  SLOW,
+  FAST,
+  NONE,
+}
+
+interface AI_DATA {
+  type: AI_TYPE;
+  max_lv: number;
+}
+
 export class DummyClient {
   // dummy value
   dummy_user_uid = 0;
@@ -93,6 +104,11 @@ export class DummyClient {
   load_complete = false;
   is_dummy = true;
   is_dummy_class = false;
+
+  ai_data: AI_DATA = {
+    type: AI_TYPE.SLOW,
+    max_lv: 100,
+  };
 
   // 게임용 데이터
   game_data = {
