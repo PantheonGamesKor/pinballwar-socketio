@@ -30,6 +30,7 @@ import {
 import {
   //
   EXTERNAL_URL,
+  g,
   random,
   SERVER_NAME,
 } from "./lib/helper";
@@ -39,6 +40,8 @@ import { DummyClient } from "./lib/DummyClient";
 const LIVE_RECV_TIME = 60; // 초단위, 통신이 없어도 유지하는 시간
 
 export function on_connection(_sock: WebSocket) {
+  g.connect_count++;
+
   const client = _sock as WebSocket2;
 
   // 초기화 - 시작
@@ -86,6 +89,8 @@ export function on_connection(_sock: WebSocket) {
   // 초기화 -끝
 
   client.on("message", (_msg) => {
+    g.packet_count++;
+
     let arr: string[] = [];
 
     try {

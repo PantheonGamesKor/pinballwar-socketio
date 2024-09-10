@@ -18,6 +18,7 @@ import {
   REDIS_H,
   IS_DEV,
   unix_time,
+  g,
 } from "./lib/helper";
 import { WaitRoom, wait_room } from "./lib/WaitRoom";
 import {
@@ -46,7 +47,16 @@ app.get("/", (_req, res) => {
 function proc_status_pw() {
   //
   const now = unix_time();
-  let text = "  # waitroom";
+  let text = "# server status";
+  text += `\n  ver: ${g.ver}`;
+  text += `\n  start_time: ${g.start_time}`;
+  text += `\n  connect_count: ${g.connect_count}`;
+  text += `\n  packet_count: ${g.packet_count}`;
+  if (IS_DEV) {
+    text += `\n  IS_DEV: ${IS_DEV}`;
+  }
+
+  text += `\n  # waitroom`;
   text += `\n  dummy: ${dummy_list.length}`;
   text += `\n  client: ${client_list.length}`;
   text += `\n  closed: ${closed_list.length}`;

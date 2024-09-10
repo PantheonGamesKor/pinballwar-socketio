@@ -1,7 +1,7 @@
 import moment, { Moment } from "moment";
 import dotenv from "dotenv";
 
-import { to_int, unix_time as unix_time_2 } from "../types_sock";
+import { time_format, to_int, unix_time as unix_time_2 } from "../types_sock";
 import { word_list } from "./words";
 
 const { v4 } = require("uuid");
@@ -17,6 +17,13 @@ console.log("REDIS_H", REDIS_H);
 console.log("SERVER_NAME", SERVER_NAME);
 console.log("EXTERNAL_URL", EXTERNAL_URL);
 console.log("MAX_DUMMY", MAX_DUMMY);
+
+export const g = {
+  ver: "v1_fix_spend_cash",
+  start_time: time_format(moment()),
+  connect_count: 0,
+  packet_count: 0,
+};
 
 let AI_NONE = false;
 if (IS_DEV) {
