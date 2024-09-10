@@ -249,6 +249,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       } else {
         client.game_data.cash_spend += req.value;
       }
+      game_room.save_game_data(client);
       break;
     case NQ_Game_Action.SPEED_UP:
       if (client.game_data.speed + req.value > MAX_SPEED_LV) {
@@ -266,6 +267,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       } else {
         client.game_data.cash_spend += req.value;
       }
+      game_room.save_game_data(client);
       break;
     case NQ_Game_Action.CHANGE_ATTR:
       if (client.game_data.attr == req.value) {
@@ -283,6 +285,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       } else {
         client.game_data.cash_spend += total_lv;
       }
+      game_room.save_game_data(client);
       break;
     case NQ_Game_Action.SCORE_UPLOAD:
       const arr = req.text.split("&");

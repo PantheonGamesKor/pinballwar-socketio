@@ -330,6 +330,35 @@ export class GameRoom {
       });
     }
   }
+
+  // 소모 정보 정장
+  save_game_data(c: WebSocket2): void {
+    if (c.is_dummy_class) return;
+
+    const redis_data: GAME_FINISH_DATA = {
+      data: c.game_data,
+      logs: c.game_log,
+    };
+    const game_log_text = JSON.stringify(redis_data);
+    console.log("game_log", game_log_text);
+
+    const key = redis_key("GAME_FINISH");
+    get_redis()
+      .hset(key, c.user_uid, game_log_text)
+      .then(() => {
+        //
+      })
+      .catch((e) => {
+        console.log(
+          //
+          "save_game_data fail, hset",
+          e.message,
+          key,
+          c.user_uid,
+          redis_data.data
+        );
+      });
+  }
 }
 
 // 게임방 여러개
