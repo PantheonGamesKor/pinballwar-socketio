@@ -14,6 +14,7 @@ import {
   MAX_BALL_LV,
   MAX_SPEED_LV,
   NS_Game_Finish,
+  GAME_FINISH_DATA,
 } from "../types_sock";
 import {
   //
@@ -140,7 +141,11 @@ export class GameRoom {
     // 게임방 정보 제거
     c.game_room = null;
 
-    const game_log_text = JSON.stringify(c.game_log);
+    const redis_data: GAME_FINISH_DATA = {
+      data: c.game_data,
+      logs: c.game_log,
+    };
+    const game_log_text = JSON.stringify(redis_data);
     console.log("game_log", game_log_text);
     c.game_log = [];
 

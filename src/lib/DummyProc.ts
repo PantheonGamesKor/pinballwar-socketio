@@ -36,6 +36,7 @@ import {
   time_diff_now,
   make_uuid,
   make_random_user_name,
+  IS_DEV_AI_NONE,
 } from "./helper";
 import { make_random_country, make_time_uid } from "./WaitRoom";
 
@@ -61,13 +62,17 @@ export function on_dummy_update(dummy: DummyClient) {
       const r = random(10);
       if (r < 4) {
         dummy.ai_data.type = AI_TYPE.SLOW;
+        dummy.ai_data.max_lv = 50 + random(100);
       } else if (r < 8) {
         dummy.ai_data.type = AI_TYPE.FAST;
+        dummy.ai_data.max_lv = 30 + random(70);
       } else {
         dummy.ai_data.type = AI_TYPE.NONE;
       }
 
-      dummy.ai_data.max_lv = 50 + random(100);
+      if (IS_DEV_AI_NONE) {
+        dummy.ai_data.type = AI_TYPE.NONE;
+      }
 
       //
       const req = new NQ_Ready();

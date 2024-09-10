@@ -50,6 +50,11 @@ interface GAME_LOG {
   cash: number;
 }
 
+export interface GAME_FINISH_DATA {
+  data: GAME_DATA;
+  logs: GAME_LOG[];
+}
+
 // WebSocket2
 export interface WebSocket2 extends WebSocket {
   // value
@@ -91,7 +96,12 @@ function args_to_data(...args: any): string {
 }
 
 // 짧게 줄임
-export const to_int = Number.parseInt;
+export function to_int(text: string) {
+  if (text == "") return 0;
+  const ret = Number.parseInt(text);
+  if (Number.isNaN(ret)) return 0;
+  return ret;
+}
 
 // 초단위
 export function unix_time(date = Date.now()): number {
@@ -112,6 +122,16 @@ export function time_format(m: Moment | null = null) {
   }
 
   return m.format("yyyy-MM-DD HH:mm:ss");
+}
+
+//
+// enum
+//
+
+export enum ITEM_ID {
+  // 재화
+  GOLD = 1, // 골드
+  CASH = 2, // 다이아
 }
 
 //

@@ -24,6 +24,7 @@ import {
   NN_Game_Action,
   NQ_Game_Finish,
   NS_Game_Finish,
+  ITEM_ID,
 } from "../types_sock";
 import { close_ws, user_map } from "./ClientManager";
 import { game_room_map } from "./GameRoom";
@@ -215,6 +216,21 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
   req.from_data(arr);
   // console.log("NQ_Game_Action", client.index, req);
 
+  // 콜드 캐시 지원
+  let is_gold = true;
+  if (req.text != "") {
+    const params = req.text.split(",");
+    const asset = to_int(params[0]);
+    if (asset == ITEM_ID.GOLD) {
+      is_gold = false;
+    } else if (asset == ITEM_ID.CASH) {
+      is_gold = true;
+    } else {
+      console.log("NQ_Game_Action unknown asset", req.text);
+      return;
+    }
+  }
+
   // 숫자 제한 검사
   switch (req.action) {
     case NQ_Game_Action.BALL_ADD:
@@ -228,7 +244,11 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       }
 
       client.game_data.ball += req.value;
-      client.game_data.gold_spend += req.value * 1000;
+      if (is_gold) {
+        client.game_data.gold_spend += req.value * 1000;
+      } else {
+        client.game_data.cash_spend += req.value;
+      }
       break;
     case NQ_Game_Action.SPEED_UP:
       if (client.game_data.speed + req.value > MAX_SPEED_LV) {
@@ -241,7 +261,11 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       }
 
       client.game_data.speed += req.value;
-      client.game_data.gold_spend += req.value * 1000;
+      if (is_gold) {
+        client.game_data.gold_spend += req.value * 1000;
+      } else {
+        client.game_data.cash_spend += req.value;
+      }
       break;
     case NQ_Game_Action.CHANGE_ATTR:
       if (client.game_data.attr == req.value) {
@@ -254,7 +278,11 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       let total_lv = 0;
       total_lv += client.game_data.ball;
       total_lv += client.game_data.speed;
-      client.game_data.gold_spend += total_lv * 1000;
+      if (is_gold) {
+        client.game_data.gold_spend += total_lv * 1000;
+      } else {
+        client.game_data.cash_spend += total_lv;
+      }
       break;
     case NQ_Game_Action.SCORE_UPLOAD:
       const arr = req.text.split("&");

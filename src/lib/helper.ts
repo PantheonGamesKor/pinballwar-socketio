@@ -12,22 +12,21 @@ export const REDIS_H = process.env.REDIS_H as string;
 export const SERVER_NAME = process.env.SERVER_NAME as string;
 export const EXTERNAL_URL = process.env.EXTERNAL_URL as string;
 export const MAX_DUMMY = to_int(process.env.MAX_DUMMY as string);
+export const IS_DEV = to_bool(process.env.IS_DEV);
 console.log("REDIS_H", REDIS_H);
 console.log("SERVER_NAME", SERVER_NAME);
 console.log("EXTERNAL_URL", EXTERNAL_URL);
 console.log("MAX_DUMMY", MAX_DUMMY);
 
-function is_ev() {
-  if (REDIS_H != "DEV") return false;
-  if (process.env.IS_DEV === undefined) return false;
-  const v = process.env.IS_DEV;
-  const n = to_int(v);
-  return n != 0;
+let AI_NONE = false;
+if (IS_DEV) {
+  AI_NONE = to_bool(process.env.IS_DEV_AI_NONE);
 }
+export const IS_DEV_AI_NONE = AI_NONE;
 
-export const IS_DEV = is_ev();
 if (IS_DEV) {
   console.log("IS_DEV");
+  console.log("IS_DEV_AI_NONE", IS_DEV_AI_NONE);
 }
 
 // 유니크 시작 번호
@@ -36,6 +35,17 @@ let unique_id = 0;
 // me : 밀리초
 export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// bool 변환
+export function to_bool(v: any): boolean {
+  if (v === undefined) return false;
+  if (v == "") return false;
+  if (v == "0") return false;
+  if (v == "false") return false;
+  if (v == 0) return false;
+  if (v == false) return false;
+  return true;
 }
 
 // 고유번호 얻기2
