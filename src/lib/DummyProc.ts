@@ -329,7 +329,7 @@ export function dummy_recv_NS_Login(dummy: DummyClient, res: NS_Login) {
 
 export function dummy_recv_NS_Ready(dummy: DummyClient, res: NS_Ready) {
   const now = unix_time();
-  console.log("dummy_recv_NS_Ready", res);
+  // console.log("dummy_recv_NS_Ready", res);
 
   if (res.code == NS_Ready.ENTER) {
     dummy.state = DUMMY_STATE.WAITROOM;

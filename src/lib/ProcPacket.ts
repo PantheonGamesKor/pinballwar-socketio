@@ -132,7 +132,10 @@ proc_ws_map[NQ_Ready.NO] = (client: WebSocket2, arr: string[]) => {
 
   const req = new NQ_Ready();
   req.from_data(arr);
-  console.log("NQ_Ready", client.index, req);
+
+  if (!client.is_dummy_class) {
+    console.log("NQ_Ready", client.index, req);
+  }
 
   // // 더미 국가 변경옵션
   // if (req.country_option != "") {
@@ -214,7 +217,7 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
 
   const req = new NQ_Game_Action();
   req.from_data(arr);
-  // console.log("NQ_Game_Action", client.index, req);
+  // console.log("NQ_Game_Action", client.user_uid, req);
 
   // 콜드 캐시 지원
   let is_gold = true;
@@ -222,14 +225,16 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
     const params = req.text.split(",");
     const asset = to_int(params[0]);
     if (asset == ITEM_ID.GOLD) {
-      is_gold = false;
-    } else if (asset == ITEM_ID.CASH) {
       is_gold = true;
+    } else if (asset == ITEM_ID.CASH) {
+      is_gold = false;
     } else {
       console.log("NQ_Game_Action unknown asset", req.text);
       return;
     }
   }
+
+  console.log("is_gold", is_gold, req.action);
 
   // 숫자 제한 검사
   switch (req.action) {
@@ -280,11 +285,16 @@ proc_ws_map[NQ_Game_Action.NO] = (client: WebSocket2, arr: string[]) => {
       let total_lv = 0;
       total_lv += client.game_data.ball;
       total_lv += client.game_data.speed;
+      console.log("total_lv", total_lv);
+      console.log("game_data before", client.game_data);
+
       if (is_gold) {
         client.game_data.gold_spend += total_lv * 1000;
       } else {
         client.game_data.cash_spend += total_lv;
       }
+      console.log("game_data after", client.game_data);
+
       game_room.save_game_data(client);
       break;
     case NQ_Game_Action.SCORE_UPLOAD:

@@ -70,7 +70,8 @@ export class WaitRoom {
     }
 
     this.list.splice(i, 1);
-    console.log("WaitRoom leave ok, left=", this.list.length);
+    // console.log("WaitRoom leave ok, left=", this.list.length);
+
     return true;
   }
 
@@ -85,7 +86,7 @@ export class WaitRoom {
     this.list.push(data);
     client.is_waitroom = true;
 
-    console.log("WaitRoom add ok", this.list.length);
+    // console.log("WaitRoom add ok", this.list.length);
   }
 
   // 국가별 사람수
