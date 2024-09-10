@@ -11,6 +11,7 @@ import {
   HttpServer2,
   WebSocket2,
   WSServer,
+  time_format,
 } from "./types_sock";
 import { DummyClient, create_dummy, create_fake_user } from "./lib/DummyClient";
 import {
@@ -47,19 +48,26 @@ app.get("/", (_req, res) => {
 function proc_status_pw() {
   //
   const now = unix_time();
-  let text = "# server status";
-  text += `\n  ver: ${g.ver}`;
-  text += `\n  start_time: ${g.start_time}`;
-  text += `\n  connect_count: ${g.connect_count}`;
-  text += `\n  packet_count: ${g.packet_count}`;
+  let text = " # server status";
+
+  text += `\n ver: ${g.ver}`;
+  text += `\n start_time: ${g.start_time}`;
+  text += `\n connect_count: ${g.connect_count}`;
+  text += `\n packet_count: ${g.packet_count}`;
+
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  text += `\n timezone: ${timezone}`;
+  const time = time_format();
+  text += `\n time: ${time}`;
+
   if (IS_DEV) {
-    text += `\n  IS_DEV: ${IS_DEV}`;
+    text += `\n IS_DEV: ${IS_DEV}`;
   }
 
-  text += `\n  # waitroom`;
-  text += `\n  dummy: ${dummy_list.length}`;
-  text += `\n  client: ${client_list.length}`;
-  text += `\n  closed: ${closed_list.length}`;
+  text += `\n # waitroom`;
+  text += `\n dummy: ${dummy_list.length}`;
+  text += `\n client: ${client_list.length}`;
+  text += `\n closed: ${closed_list.length}`;
 
   let wait_dummy = 0;
   for (const i in wait_room.list) {
@@ -88,7 +96,7 @@ function proc_status_pw() {
 
   //
   text += `\n`;
-  text += `\n  # dummy_list ${dummy_list.length}`;
+  text += `\n # dummy_list ${dummy_list.length}`;
   state_map.forEach((n, i) => {
     const sname = get_dummy_state(i);
     text += `\n  ${sname}: ${n}`;
