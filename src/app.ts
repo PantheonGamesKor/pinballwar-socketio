@@ -51,7 +51,7 @@ function proc_status_pw() {
   let text = " # server status";
 
   text += `\n ver: ${g.ver}`;
-  text += `\n start_time: ${g.start_time}`;
+  text += `\n start_time: ${g.start_time} ` + moment(g.start_time).fromNow();
   text += `\n connect_count: ${g.connect_count}`;
   text += `\n packet_count: ${g.packet_count}`;
 
